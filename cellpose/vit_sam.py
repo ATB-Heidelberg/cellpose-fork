@@ -103,7 +103,7 @@ class Transformer(nn.Module):
 
         # loudly fail on attempt to load not cp4 model:
         w2_data = state_dict.get("W2", None)
-        if w2_data == None:
+        if w2_data is None:
             raise ValueError(
                 "This model does not appear to be a CP4 model. CP3 models are not compatible with CP4."
             )

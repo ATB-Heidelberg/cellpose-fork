@@ -9,7 +9,7 @@ import fastremap
 import numpy as np
 import tifffile
 import torch
-from scipy.ndimage import center_of_mass, find_objects, mean
+from scipy.ndimage import find_objects, mean
 from tqdm import trange
 
 dynamics_logger = logging.getLogger(__name__)

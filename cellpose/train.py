@@ -9,7 +9,7 @@ from torch import nn
 from tqdm import trange
 
 from cellpose import dynamics, io, models, utils
-from cellpose.transforms import normalize_img, random_rotate_and_resize
+from cellpose.transforms import convert_image, normalize_img, random_rotate_and_resize
 
 train_logger = logging.getLogger(__name__)
 
@@ -195,7 +195,7 @@ def _process_train_test(
     Returns:
         tuple: A tuple containing the processed train and test data and sampling probabilities and diameters.
     """
-    if device == None:
+    if device is None:
         device = (
             torch.device("cuda")
             if torch.cuda.is_available()

@@ -435,7 +435,7 @@ def random_rotate_and_resize_noise(
         torch.Tensor: The augmented labels.
         float: The scale factor applied to the image.
     """
-    if device == None:
+    if device is None:
         device = (
             torch.device("cuda")
             if torch.cuda.is_available()
@@ -543,7 +543,7 @@ def one_chan_cellpose(device, model_type="cyto2", pretrained_model=None):
         pretrained_model = None
     nbase = [32, 64, 128, 256]
     nchan = 1
-    net1 = resnet_torch.CPnet([nchan, *nbase], nout=3, sz=3).to(device)
+    net1 = resnet_torch.CPnet([nchan, *nbase], nout=3, sz=3).to(device)  # noqa: F821
     filename = (
         model_path(model_type, 0) if pretrained_model is None else pretrained_model
     )
@@ -826,7 +826,7 @@ class DenoiseModel:
         self.nchan = nchan
         self.nbase = [nchan, *nbase]
 
-        self.net = CPnet(
+        self.net = CPnet(  # noqa: F821
             self.nbase, self.nclasses, sz=3, max_pool=True, diam_mean=diam_mean
         ).to(self.device)
 
@@ -842,7 +842,7 @@ class DenoiseModel:
                     os.path.split(self.pretrained_model)[-1].split("_")[0] + "_nuclei"
                 )
                 print(f"loading model for chan2: {os.path.split(str(chan2_path))[-1]}")
-                self.net_chan2 = CPnet(
+                self.net_chan2 = CPnet(  # noqa: F821
                     self.nbase, self.nclasses, sz=3, max_pool=True, diam_mean=17.0
                 ).to(self.device)
                 self.net_chan2.load_model(chan2_path, device=self.device)

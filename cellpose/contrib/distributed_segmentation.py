@@ -359,7 +359,8 @@ def cluster(func):
         )
         if "cluster" not in kwargs:
             cluster_constructor = myLocalCluster
-            F = lambda x: x in kwargs["cluster_kwargs"]
+            def F(x):
+                return x in kwargs["cluster_kwargs"]
             if F("ncpus") and F("min_workers") and F("max_workers"):
                 cluster_constructor = janeliaLSFCluster
             with cluster_constructor(**kwargs["cluster_kwargs"]) as cluster:
@@ -574,7 +575,8 @@ def bounding_boxes_in_global_coordinates(segmentation, crop):
     best to compute them now while things are distributed"""
     boxes = scipy.ndimage.find_objects(segmentation)
     boxes = [b for b in boxes if b is not None]
-    translate = lambda a, b: slice(a.start + b.start, a.start + b.stop)
+    def translate(a, b):
+        return slice(a.start + b.start, a.start + b.stop)
     for iii, box in enumerate(boxes):
         boxes[iii] = tuple(translate(a, b) for a, b in zip(crop, box))
     return boxes

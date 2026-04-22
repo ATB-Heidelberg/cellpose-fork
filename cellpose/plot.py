@@ -2,6 +2,7 @@
 Copyright © 2025 Howard Hughes Medical Institute, Authored by Carsen Stringer , Michael Rariden and Marius Pachitariu.
 """
 
+import importlib.util
 import os
 
 import numpy as np
@@ -9,12 +10,7 @@ from scipy.ndimage import gaussian_filter
 
 from . import io, transforms, utils
 
-try:
-    import matplotlib
-
-    MATPLOTLIB_ENABLED = True
-except ImportError:
-    MATPLOTLIB_ENABLED = False
+MATPLOTLIB_ENABLED = importlib.util.find_spec("matplotlib") is not None
 
 try:
     from skimage.segmentation import find_boundaries
