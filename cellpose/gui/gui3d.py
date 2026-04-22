@@ -82,7 +82,6 @@ def run(image=None):
     app = QApplication(sys.argv)
     icon_path = pathlib.Path.home().joinpath(".cellpose", "logo.png")
     guip_path = pathlib.Path.home().joinpath(".cellpose", "cellpose_gui.png")
-    style_path = pathlib.Path.home().joinpath(".cellpose", "style_choice.npy")
     if not icon_path.is_file():
         cp_dir = pathlib.Path.home().joinpath(".cellpose")
         cp_dir.mkdir(exist_ok=True)
@@ -277,7 +276,6 @@ class MainW_3d(MainW):
         zmin = zdraw.min()
         pix = np.zeros((2, 0), "uint16")
         mall = np.zeros((len(zrange), self.Ly, self.Lx), "bool")
-        k = 0
         for z in zdraw:
             ars, acs, vrs, vcs = (
                 np.zeros(0, "int"),

@@ -535,7 +535,6 @@ def _convert_image_3d(x, channel_axis=None, z_axis=None):
     assert x.ndim == 4, f"input image must have ndim == 4, ndim={x.ndim}"
 
     x_dim_shapes = list(x.shape)
-    num_z_layers = x_dim_shapes[z_axis]
     num_channels = x_dim_shapes[channel_axis]
     x_xy_axes = [i for i in range(x.ndim)]
 

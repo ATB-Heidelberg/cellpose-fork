@@ -986,7 +986,7 @@ class MainW(QMainWindow):
         self.scrollarea.setWidget(self.swidget)
         self.l0 = QGridLayout()
         self.swidget.setLayout(self.l0)
-        b = self.make_buttons()
+        self.make_buttons()
         self.lmain.addWidget(self.scrollarea, 0, 0, 39, 9)
 
         # ---- drawing area ---- #
@@ -2144,7 +2144,7 @@ class MainW(QMainWindow):
         self.update_layer()
 
     def mouse_moved(self, pos):
-        items = self.win.scene().items(pos)
+        self.win.scene().items(pos)
 
     def color_choose(self):
         self.color = self.RGBDropDown.currentIndex()
@@ -2446,7 +2446,7 @@ class MainW(QMainWindow):
                 if key != "percentile":
                     normalize_params[key] = normalize_default[key]
         normalize_params = {**normalize_default, **normalize_params}
-        out = self.check_filter_params(
+        self.check_filter_params(
             normalize_params["sharpen_radius"],
             normalize_params["smooth_radius"],
             normalize_params["tile_norm_blocksize"],
@@ -2701,7 +2701,6 @@ class MainW(QMainWindow):
         np.save(str(self.new_model_path) + "_train_losses.npy", train_losses)
         # run model on next image
         io._add_model(self, self.new_model_path)
-        diam_labels = self.model.net.diam_labels.item()  # .copy()
         self.new_model_ind = len(self.model_strings)
         self.autorun = True
         self.clear_all()
@@ -2897,7 +2896,6 @@ class MainW(QMainWindow):
                 f"{len(np.unique(masks)[1:])} cells found with model in {time.time() - tic:0.3f} sec"
             )
             self.progress.setValue(80)
-            z = 0
 
             io._masks_to_gui(self, masks, outlines=None)
             self.masksOn = True

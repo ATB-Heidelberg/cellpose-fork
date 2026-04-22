@@ -129,7 +129,6 @@ def masks_to_flows_gpu(masks, device=torch.device("cpu"), niter=None):
 
     if masks.max() > 0:
         Ly0, Lx0 = masks.shape
-        Ly, Lx = Ly0 + 2, Lx0 + 2
 
         masks_padded = torch.from_numpy(masks.astype("int64")).to(device)
         masks_padded = F.pad(masks_padded, (1, 1, 1, 1))
@@ -197,7 +196,6 @@ def masks_to_flows_gpu_3d(masks, device=None, niter=None):
         )
 
     Lz0, Ly0, Lx0 = masks.shape
-    Lz, Ly, Lx = Lz0 + 2, Ly0 + 2, Lx0 + 2
 
     masks_padded = torch.from_numpy(masks.astype("int64")).to(device)
     masks_padded = F.pad(masks_padded, (1, 1, 1, 1, 1, 1))
@@ -437,9 +435,6 @@ def follow_flows(dP, inds, niter=200, device=torch.device("cpu")):
         A tuple containing (p, inds): p (np.ndarray): Final locations of each pixel after dynamics; [axis x Ly x Lx] or [axis x Lz x Ly x Lx];
         inds (np.ndarray): Indices of pixels used for dynamics; [axis x Ly x Lx] or [axis x Lz x Ly x Lx].
     """
-    shape = np.array(dP.shape[1:]).astype(np.int32)
-    ndim = len(inds)
-
     p = steps_interp(dP, inds, niter, device=device)
 
     return p

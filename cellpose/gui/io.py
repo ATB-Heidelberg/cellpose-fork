@@ -547,7 +547,6 @@ def _save_flows(parent):
 
 def _save_rois(parent):
     """save masks as rois in .zip file for ImageJ"""
-    filename = parent.filename
     if parent.NZ == 1:
         print(
             f"GUI_INFO: saving {parent.cellpix[0].max()} ImageJ ROIs to .zip archive."

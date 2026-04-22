@@ -109,7 +109,6 @@ def main():
             raise ValueError(f"ERROR: no file found at {args.image_path}")
 
     np.random.seed(0)
-    nimg_per_tif = args.nimg_per_tif
     crop_size = args.crop_size
     os.makedirs(os.path.join(dirname, "train/"), exist_ok=True)
     pm = [(0, 1, 2, 3), (2, 0, 1, 3), (1, 0, 2, 3)]

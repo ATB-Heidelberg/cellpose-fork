@@ -789,7 +789,6 @@ def distributed_eval(
             int
         )  # unsure how but without cast these are float64
         new_labeling = determine_merge_relabeling(block_indices, faces, box_ids)
-        debug_unique = np.unique(new_labeling)
         new_labeling_path = temporary_directory + "/new_labeling.npy"
         np.save(new_labeling_path, new_labeling)
 
