@@ -17,14 +17,14 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "numpy>=1.20.0",
-    "scipy",
-    "natsort",
+    "numpy>=2.0",
+    "scipy>=1.11",
+    "natsort>=8.0",
     "tifffile",
-    "tqdm",
-    "torch>=1.6",
-    "torchvision",
-    "opencv-python-headless",
+    "tqdm>=4.60",
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "opencv-python-headless>=4.8",
     "fastremap",
     "imagecodecs",
     "roifile",
@@ -38,14 +38,14 @@ image = [
     "pynrrd",
 ]
 gui = [
-    "pyqtgraph>=0.12.4",
+    "pyqtgraph>=0.13",
     "pyqt6",
     "pyqt6.sip",
     "qtpy",
     "superqt",
 ]
 docs = [
-    "sphinx>=3.0",
+    "sphinx>=7.0",
     "sphinxcontrib-apidoc",
     "sphinx_rtd_theme",
     "sphinx-argparse",
