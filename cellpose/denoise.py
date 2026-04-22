@@ -56,13 +56,13 @@ def loss_fn_rec(lbl, y):
     return loss
 
 
-def loss_fn_seg(lbl, y):
+def loss_fn_seg(label, y):
     """loss function between true labels lbl and prediction y"""
-    veci = 5.0 * lbl[:, 1:]
-    lbl = (lbl[:, 0] > 0.5).float()
-    loss = criterion(y[:, :2], veci)
+    flow_label = 5.0 * label[:, 1:]
+    label = (label[:, 0] > 0.5).float()
+    loss = criterion(y[:, :2], flow_label)
     loss /= 2.0
-    loss2 = criterion2(y[:, 2], lbl)
+    loss2 = criterion2(y[:, 2], label)
     loss = loss + loss2
     return loss
 
@@ -123,94 +123,98 @@ def loss_fn_per(img, net1, yl):
     return losses.mean()
 
 
-def test_loss(net0, X, net1=None, img=None, lbl=None, lam=[1.0, 1.5, 0.0]):
+def test_loss(net0, input_tensor, seg_network=None, image=None, lbl=None, loss_weight_list=None):
     """
     Calculates the test loss for image restoration tasks.
 
     Args:
         net0 (torch.nn.Module): The image restoration network.
-        X (torch.Tensor): The input image tensor.
-        net1 (torch.nn.Module, optional): The segmentation network for segmentation or perceptual loss. Defaults to None.
-        img (torch.Tensor, optional): Clean image tensor for perceptual or reconstruction loss. Defaults to None.
+        input_tensor (torch.Tensor): The input image tensor.
+        seg_network (torch.nn.Module, optional): The segmentation network for segmentation or perceptual loss. Defaults to None.
+        image (torch.Tensor, optional): Clean image tensor for perceptual or reconstruction loss. Defaults to None.
         lbl (torch.Tensor, optional): The ground truth flows/cellprob tensor for segmentation loss. Defaults to None.
-        lam (list, optional): The weights for different loss components (perceptual, segmentation, reconstruction). Defaults to [1., 1.5, 0.].
+        loss_weight_list (list, optional): The weights for different loss components (perceptual, segmentation, reconstruction). Defaults to [1., 1.5, 0.].
 
     Returns:
         tuple: A tuple containing the total loss and the perceptual loss.
     """
+    if loss_weight_list is None:
+        loss_weight_list = [1.0, 1.5, 0.0]
     net0.eval()
-    if net1 is not None:
-        net1.eval()
-    loss, loss_per = torch.zeros(1, device=X.device), torch.zeros(1, device=X.device)
+    if seg_network is not None:
+        seg_network.eval()
+    loss, loss_per = torch.zeros(1, device=input_tensor.device), torch.zeros(1, device=input_tensor.device)
 
     with torch.no_grad():
-        img_dn = net0(X)[0]
-        if lam[2] > 0.0:
-            loss += lam[2] * loss_fn_rec(img, img_dn)
-        if lam[1] > 0.0 or lam[0] > 0.0:
-            y, _, ydown = net1(img_dn)
-        if lam[1] > 0.0:
-            loss += lam[1] * loss_fn_seg(lbl, y)
-        if lam[0] > 0.0:
-            loss_per = loss_fn_per(img, net1, ydown)
-            loss += lam[0] * loss_per
+        img_dn = net0(input_tensor)[0]
+        if loss_weight_list[2] > 0.0:
+            loss += loss_weight_list[2] * loss_fn_rec(image, img_dn)
+        if loss_weight_list[1] > 0.0 or loss_weight_list[0] > 0.0:
+            y, _, ydown = seg_network(img_dn)
+        if loss_weight_list[1] > 0.0:
+            loss += loss_weight_list[1] * loss_fn_seg(lbl, y)
+        if loss_weight_list[0] > 0.0:
+            loss_per = loss_fn_per(image, seg_network, ydown)
+            loss += loss_weight_list[0] * loss_per
     return loss, loss_per
 
 
-def train_loss(net0, X, net1=None, img=None, lbl=None, lam=[1.0, 1.5, 0.0]):
+def train_loss(net0, input_tensor, net1=None, image=None, labels=None, loss_weights=None):
     """
     Calculates the train loss for image restoration tasks.
 
     Args:
         net0 (torch.nn.Module): The image restoration network.
-        X (torch.Tensor): The input image tensor.
+        input_tensor (torch.Tensor): The input image tensor.
         net1 (torch.nn.Module, optional): The segmentation network for segmentation or perceptual loss. Defaults to None.
-        img (torch.Tensor, optional): Clean image tensor for perceptual or reconstruction loss. Defaults to None.
-        lbl (torch.Tensor, optional): The ground truth flows/cellprob tensor for segmentation loss. Defaults to None.
-        lam (list, optional): The weights for different loss components (perceptual, segmentation, reconstruction). Defaults to [1., 1.5, 0.].
+        image (torch.Tensor, optional): Clean image tensor for perceptual or reconstruction loss. Defaults to None.
+        labels (torch.Tensor, optional): The ground truth flows/cellprob tensor for segmentation loss. Defaults to None.
+        loss_weights (list, optional): The weights for different loss components (perceptual, segmentation, reconstruction). Defaults to [1., 1.5, 0.].
 
     Returns:
         tuple: A tuple containing the total loss and the perceptual loss.
     """
+    if loss_weights is None:
+        loss_weights = [1.0, 1.5, 0.0]
     net0.train()
     if net1 is not None:
         net1.eval()
-    loss, loss_per = torch.zeros(1, device=X.device), torch.zeros(1, device=X.device)
+    loss, loss_per = torch.zeros(1, device=input_tensor.device), torch.zeros(1, device=input_tensor.device)
 
-    img_dn = net0(X)[0]
-    if lam[2] > 0.0:
-        loss += lam[2] * loss_fn_rec(img, img_dn)
-    if lam[1] > 0.0 or lam[0] > 0.0:
+    img_dn = net0(input_tensor)[0]
+    if loss_weights[2] > 0.0:
+        loss += loss_weights[2] * loss_fn_rec(image, img_dn)
+    if loss_weights[1] > 0.0 or loss_weights[0] > 0.0:
         y, _, ydown = net1(img_dn)
-    if lam[1] > 0.0:
-        loss += lam[1] * loss_fn_seg(lbl, y)
-    if lam[0] > 0.0:
-        loss_per = loss_fn_per(img, net1, ydown)
-        loss += lam[0] * loss_per
+    if loss_weights[1] > 0.0:
+        loss += loss_weights[1] * loss_fn_seg(labels, y)
+    if loss_weights[0] > 0.0:
+        loss_per = loss_fn_per(image, net1, ydown)
+        loss += loss_weights[0] * loss_per
     return loss, loss_per
 
 
-def img_norm(imgi):
+def img_norm(input_image):
     """
     Normalizes the input image by subtracting the 1st percentile and dividing by the difference between the 99th and 1st percentiles.
 
     Args:
-        imgi (torch.Tensor): Input image tensor.
+        input_image (torch.Tensor): Input image tensor.
 
     Returns:
         torch.Tensor: Normalized image tensor.
     """
-    shape = imgi.shape
-    imgi = imgi.reshape(imgi.shape[0], imgi.shape[1], -1)
+    shape = input_image.shape
+    input_image = input_image.reshape(input_image.shape[0], input_image.shape[1], -1)
     perc = torch.quantile(
-        imgi, torch.tensor([0.01, 0.99], device=imgi.device), dim=-1, keepdim=True
+        input_image, torch.tensor([0.01, 0.99], device=input_image.device), dim=-1, keepdim=True
     )
-    for k in range(imgi.shape[1]):
-        hask = (perc[1, :, k, 0] - perc[0, :, k, 0]) > 1e-3
-        imgi[hask, k] -= perc[0, hask, k]
-        imgi[hask, k] /= perc[1, hask, k] - perc[0, hask, k]
-    imgi = imgi.reshape(shape)
-    return imgi
+    for k in range(input_image.shape[1]):
+        percentile_diff = (perc[1, :, k, 0] - perc[0, :, k, 0]) > 1e-3
+        input_image[percentile_diff, k] -= perc[0, percentile_diff, k]
+        input_image[percentile_diff, k] /= perc[1, percentile_diff, k] - perc[0, percentile_diff, k]
+    input_image = input_image.reshape(shape)
+    return input_image
 
 
 def add_noise(
@@ -1102,7 +1106,7 @@ def train(
     test_files=None,
     train_probs=None,
     test_probs=None,
-    lam=[1.0, 1.5, 0.0],
+    loss_weights=[1.0, 1.5, 0.0],
     scale_range=0.5,
     seg_model_type="cyto2",
     save_path=None,
@@ -1141,7 +1145,7 @@ def train(
         if model_name is None:
             filename = ""
             lstrs = ["per", "seg", "rec"]
-            for k, (l, s) in enumerate(zip(lam, lstrs)):
+            for k, (l, s) in enumerate(zip(loss_weights, lstrs)):
                 filename += f"{s}_{l:.2f}_"
             if not iso:
                 filename += "aniso_"
@@ -1284,9 +1288,9 @@ def train(
                         net,
                         imgi[:, :nchan],
                         net1=net1,
-                        img=imgi[:, nchan:],
-                        lbl=lbli,
-                        lam=lam,
+                        image=imgi[:, nchan:],
+                        labels=lbli,
+                        loss_weights=loss_weights,
                     )
                     loss.backward()
                     optimizer.step()
@@ -1336,10 +1340,10 @@ def train(
                     loss, loss_per = test_loss(
                         net,
                         img[:, :nchan],
-                        net1=net1,
-                        img=img[:, nchan:],
+                        seg_network=net1,
+                        image=img[:, nchan:],
                         lbl=lbl,
-                        lam=lam,
+                        loss_weight_list=loss_weights,
                     )
 
                     lavgt += loss.item() * img.shape[0]
@@ -1482,8 +1486,8 @@ if __name__ == "__main__":
     io.logger_setup()
 
     args = parser.parse_args()
-    lams = [args.lam_per, args.lam_seg, args.lam_rec]
-    print("lam", lams)
+    loss_weights = [args.lam_per, args.lam_seg, args.lam_rec]
+    print("lam", loss_weights)
 
     if len(args.noise_type) > 0:
         noise_type = args.noise_type
@@ -1621,7 +1625,7 @@ if __name__ == "__main__":
         uniform_blur=uniform_blur,
         n_epochs=args.n_epochs,
         learning_rate=args.learning_rate,
-        lam=lams,
+        loss_weights=loss_weights,
         seg_model_type=args.seg_model_type,
         nimg_per_epoch=nimg_per_epoch,
         nimg_test_per_epoch=nimg_test_per_epoch,

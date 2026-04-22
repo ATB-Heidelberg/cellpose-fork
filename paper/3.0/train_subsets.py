@@ -56,13 +56,13 @@ def main():
 
     (root / "models").mkdir(exist_ok=True)
     # poisson training
-    model_path, train_losses, test_losses = denoise.train(model.net, train_data=train_data, train_labels=train_labels, 
-                            test_data=test_data, test_labels=test_labels,
-                            save_path=root / "models", blur=0., gblur=0.5,
-                            iso=True, lam=[1.,1.5,0],
-                            downsample=0., poisson=0.8, beta=0.7   , n_epochs=n_epochs, 
-                            learning_rate=0.001, weight_decay=1e-5,
-                            seg_model_type="cyto2", model_name=f"denoise_cyto2_{nsub}_{seed}_{n_epochs}")
+    model_path, train_losses, test_losses = denoise.train(model.net, train_data=train_data, train_labels=train_labels,
+                                                          test_data=test_data, test_labels=test_labels,
+                                                          save_path=root / "models", blur=0., gblur=0.5,
+                                                          iso=True, loss_weights=[1., 1.5, 0],
+                                                          downsample=0., poisson=0.8, beta=0.7, n_epochs=n_epochs,
+                                                          learning_rate=0.001, weight_decay=1e-5,
+                                                          seg_model_type="cyto2", model_name=f"denoise_cyto2_{nsub}_{seed}_{n_epochs}")
 
 
 if __name__ == "__main__":
