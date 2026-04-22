@@ -1087,7 +1087,7 @@ class DenoiseModel:
         #     del yf, style
         net_time = time.time() - tic
         if nimg > 1:
-            denoise_logger.info("imgs denoised in %2.2fs" % (net_time))
+            denoise_logger.info(f"imgs denoised in {net_time:2.2f}s")
 
         return imgs
 
@@ -1346,21 +1346,12 @@ def train(
                     nsum += len(img)
                 lavgt = lavgt / nsum
                 denoise_logger.info(
-                    "Epoch %d, Time %4.1fs, Loss %0.3f, loss_per %0.3f, Loss Test %0.3f, LR %2.4f"
-                    % (
-                        iepoch,
-                        time.time() - tic,
-                        lavg,
-                        lavg_per,
-                        lavgt,
-                        learning_rate[iepoch],
-                    )
+                    f"Epoch {iepoch}, Time {time.time() - tic:4.1f}s, Loss {lavg:0.3f}, loss_per {lavg_per:0.3f}, Loss Test {lavgt:0.3f}, LR {learning_rate[iepoch]:2.4f}"
                 )
                 test_losses.append(lavgt)
             else:
                 denoise_logger.info(
-                    "Epoch %d, Time %4.1fs, Loss %0.3f, loss_per %0.3f, LR %2.4f"
-                    % (iepoch, time.time() - tic, lavg, lavg_per, learning_rate[iepoch])
+                    f"Epoch {iepoch}, Time {time.time() - tic:4.1f}s, Loss {lavg:0.3f}, loss_per {lavg_per:0.3f}, LR {learning_rate[iepoch]:2.4f}"
                 )
             train_losses.append(lavg)
 
@@ -1722,11 +1713,11 @@ def seg_train_noisy(
                     ]
                 )
                 diam_test[diam_test < 5] = 5.0
-            denoise_logger.info(">>>> median diameter set to = %d" % model.diam_mean)
+            denoise_logger.info(f">>>> median diameter set to = {model.diam_mean}")
     elif rescale:
         diam_train_mean = diameter
         model.diam_labels = diameter
-        denoise_logger.info(">>>> median diameter set to = %d" % model.diam_mean)
+        denoise_logger.info(f">>>> median diameter set to = {model.diam_mean}")
         diam_train = diameter * np.ones(len(train_labels), "float32")
         if test_data is not None:
             diam_test = diameter * np.ones(len(test_labels), "float32")
@@ -1737,10 +1728,9 @@ def seg_train_noisy(
     model.net.diam_labels.data = torch.ones(1, device=model.device) * diam_train_mean
 
     nchan = train_data[0].shape[0]
-    denoise_logger.info(">>>> training network with %d channel input <<<<" % nchan)
+    denoise_logger.info(f">>>> training network with {nchan} channel input <<<<")
     denoise_logger.info(
-        ">>>> LR: %0.5f, batch_size: %d, weight_decay: %0.5f"
-        % (model.learning_rate_const, model.batch_size, weight_decay)
+        f">>>> LR: {model.learning_rate_const:0.5f}, batch_size: {model.batch_size}, weight_decay: {weight_decay:0.5f}"
     )
 
     if test_data is not None:
@@ -1830,19 +1820,11 @@ def seg_train_noisy(
                     nsum += len(imgi)
 
                 denoise_logger.info(
-                    "Epoch %d, Time %4.1fs, Loss %2.4f, Loss Test %2.4f, LR %2.4f"
-                    % (
-                        iepoch,
-                        time.time() - tic,
-                        lavg,
-                        lavgt / nsum,
-                        model.learning_rate[iepoch],
-                    )
+                    f"Epoch {iepoch}, Time {time.time() - tic:4.1f}s, Loss {lavg:2.4f}, Loss Test {lavgt / nsum:2.4f}, LR {model.learning_rate[iepoch]:2.4f}"
                 )
             else:
                 denoise_logger.info(
-                    "Epoch %d, Time %4.1fs, Loss %2.4f, LR %2.4f"
-                    % (iepoch, time.time() - tic, lavg, model.learning_rate[iepoch])
+                    f"Epoch {iepoch}, Time {time.time() - tic:4.1f}s, Loss {lavg:2.4f}, LR {model.learning_rate[iepoch]:2.4f}"
                 )
 
             lavg, nsum = 0, 0

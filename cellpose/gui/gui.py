@@ -1938,7 +1938,7 @@ class MainW(QMainWindow):
         self.ismanual = np.delete(self.ismanual, idx - 1)
         self.cellcolors = np.delete(self.cellcolors, [idx], axis=0)
         del self.zdraw[idx - 1]
-        print("GUI_INFO: removed cell %d" % (idx - 1))
+        print(f"GUI_INFO: removed cell {idx - 1}")
 
     def remove_region_cells(self):
         if self.removing_cells_list:
@@ -2726,8 +2726,7 @@ class MainW(QMainWindow):
             )
 
             self.logger.info(
-                "computing masks with cell prob=%0.3f, flow error threshold=%0.3f"
-                % (cellprob_threshold, flow_threshold)
+                f"computing masks with cell prob={cellprob_threshold:0.3f}, flow error threshold={flow_threshold:0.3f}"
             )
 
             try:
@@ -2753,7 +2752,7 @@ class MainW(QMainWindow):
                 self.MCheckBox.setChecked(True)
             if maski.ndim < 3:
                 maski = maski[np.newaxis, ...]
-            self.logger.info("%d cells found" % (len(np.unique(maski)[1:])))
+            self.logger.info(f"{len(np.unique(maski)[1:])} cells found")
             io._masks_to_gui(self, maski, outlines=None)
             self.show()
 
@@ -2820,7 +2819,7 @@ class MainW(QMainWindow):
                     z_axis=0 if self.NZ > 1 else None,
                 )[:2]
             except Exception as e:
-                print("NET ERROR: %s" % e)
+                print(f"NET ERROR: {e}")
                 self.progress.setValue(0)
                 return
 
@@ -2895,8 +2894,7 @@ class MainW(QMainWindow):
                 ]
 
             self.logger.info(
-                "%d cells found with model in %0.3f sec"
-                % (len(np.unique(masks)[1:]), time.time() - tic)
+                f"{len(np.unique(masks)[1:])} cells found with model in {time.time() - tic:0.3f} sec"
             )
             self.progress.setValue(80)
             z = 0
@@ -2916,4 +2914,4 @@ class MainW(QMainWindow):
             else:
                 self.recompute_masks = False
         except Exception as e:
-            print("ERROR: %s" % e)
+            print(f"ERROR: {e}")

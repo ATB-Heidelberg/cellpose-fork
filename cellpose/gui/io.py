@@ -475,7 +475,7 @@ def _masks_to_gui(parent, masks, outlines=None, colors=None):
                 outlines = masks_to_outlines(parent.cellpix_orig[z])
                 parent.outpix_orig[z] = outlines * parent.cellpix_orig[z]
             if z % 50 == 0 and parent.NZ > 1:
-                print("GUI_INFO: plane %d outlines processed" % z)
+                print(f"GUI_INFO: plane {z} outlines processed")
         if parent.restore and "upsample" in parent.restore:
             parent.outpix_resize = parent.outpix.copy()
     else:
@@ -487,7 +487,7 @@ def _masks_to_gui(parent, masks, outlines=None, colors=None):
                 outlines = masks_to_outlines(parent.cellpix_orig[z])
                 parent.outpix_orig[z] = outlines * parent.cellpix_orig[z]
                 if z % 50 == 0 and parent.NZ > 1:
-                    print("GUI_INFO: plane %d outlines processed" % z)
+                    print(f"GUI_INFO: plane {z} outlines processed")
 
     if parent.outpix.ndim == 2:
         parent.outpix = parent.outpix[np.newaxis, :, :]
@@ -638,7 +638,7 @@ def _save_sets(parent):
     try:
         np.save(base + "_seg.npy", dat)
         print(
-            "GUI_INFO: %d ROIs saved to %s" % (parent.ncells.get(), base + "_seg.npy")
+            f"GUI_INFO: {parent.ncells.get()} ROIs saved to {base + '_seg.npy'}"
         )
     except Exception as e:
         print(f"ERROR: {e}")

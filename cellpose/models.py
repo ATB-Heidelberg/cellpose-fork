@@ -458,7 +458,7 @@ class CellposeModel:
 
         net_time = time.time() - tic
         if nimg > 1:
-            models_logger.info("network run in %2.2fs" % (net_time))
+            models_logger.info(f"network run in {net_time:2.2f}s")
 
         return dP, cellprob, styles
 
@@ -544,9 +544,9 @@ class CellposeModel:
 
         flow_time = time.time() - tic
         if shape[0] > 1:
-            models_logger.info("masks created in %2.2fs" % (flow_time))
+            models_logger.info(f"masks created in {flow_time:2.2f}s")
 
         if changed_device_from is not None:
-            models_logger.info("switching back to device %s" % self.device)
+            models_logger.info(f"switching back to device {self.device}")
             self.device = torch.device(changed_device_from)
         return masks

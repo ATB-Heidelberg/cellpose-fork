@@ -310,8 +310,7 @@ def run_3D(
         xsl = imgs.transpose(pm[p])
         # per image
         core_logger.info(
-            "running %s: %d planes of size (%d, %d)"
-            % (sstr[p], shape[pm[p][0]], shape[pm[p][1]], shape[pm[p][2]])
+            f"running {sstr[p]}: {shape[pm[p][0]]} planes of size ({shape[pm[p][1]]}, {shape[pm[p][2]]})"
         )
         y, style = run_net(
             net,

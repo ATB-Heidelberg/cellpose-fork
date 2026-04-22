@@ -347,7 +347,7 @@ class MainW_3d(MainW):
                 ioverlap = self.cellpix[z + zmin][ar + ymin, ac + xmin] > 0
                 if (~ioverlap).sum() < 5:
                     print(
-                        "WARNING: stroke on plane %d not included due to overlaps" % z
+                        f"WARNING: stroke on plane {z} not included due to overlaps"
                     )
                 elif ioverlap.sum() > 0:
                     mask[ar[ioverlap], ac[ioverlap]] = 0

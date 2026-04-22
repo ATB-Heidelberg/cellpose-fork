@@ -48,7 +48,7 @@ def main():
             return
         else:
             if not GUI_ENABLED:
-                print("GUI ERROR: %s" % GUI_ERROR)
+                print(f"GUI ERROR: {GUI_ERROR}")
                 if GUI_IMPORT:
                     print(
                         "GUI FAILED: GUI dependencies may not be installed, to install, run"
@@ -217,7 +217,7 @@ def _train_cellposemodel_cli(
         model_name=args.model_name_out,
     )[0]
     model.pretrained_model = cpmodel_path
-    logger.info(">>>> model trained and saved to %s" % cpmodel_path)
+    logger.info(f">>>> model trained and saved to {cpmodel_path}")
     return model
 
 
@@ -247,7 +247,7 @@ def _evaluate_cellposemodel_cli(args, logger, imf, device, pretrained_model, nor
         if not os.path.exists(args.savedir):
             raise FileExistsError(f"--savedir {args.savedir} does not exist")
 
-    logger.info(">>>> running cellpose on %d images using all channels" % nimg)
+    logger.info(f">>>> running cellpose on {nimg} images using all channels")
 
     # handle built-in model exceptions
     model = models.CellposeModel(

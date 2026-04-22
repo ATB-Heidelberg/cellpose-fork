@@ -132,7 +132,7 @@ def distance_to_boundary(masks):
     """
     if masks.ndim > 3 or masks.ndim < 2:
         raise ValueError(
-            "distance_to_boundary takes 2D or 3D array, not %dD array" % masks.ndim
+            f"distance_to_boundary takes 2D or 3D array, not {masks.ndim}D array"
         )
     dist_to_bound = np.zeros(masks.shape, np.float64)
 
@@ -212,7 +212,7 @@ def masks_to_outlines(masks):
     """
     if masks.ndim > 3 or masks.ndim < 2:
         raise ValueError(
-            "masks_to_outlines takes 2D or 3D array, not %dD array" % masks.ndim
+            f"masks_to_outlines takes 2D or 3D array, not {masks.ndim}D array"
         )
     outlines = np.zeros(masks.shape, bool)
 
@@ -678,7 +678,7 @@ def fill_holes_and_remove_small_masks(masks, min_size=15):
 
     if masks.ndim > 3 or masks.ndim < 2:
         raise ValueError(
-            "masks_to_outlines takes 2D or 3D array, not %dD array" % masks.ndim
+            f"masks_to_outlines takes 2D or 3D array, not {masks.ndim}D array"
         )
 
     # Filter small masks

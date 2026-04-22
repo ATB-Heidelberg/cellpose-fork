@@ -271,7 +271,7 @@ def imread(filename):
                 img = img[..., [2, 1, 0]]
             return img
         except Exception as e:
-            io_logger.critical("ERROR: could not read file, %s" % e)
+            io_logger.critical(f"ERROR: could not read file, {e}")
             return None
     else:
         try:
@@ -279,7 +279,7 @@ def imread(filename):
             masks = dat["masks"]
             return masks
         except Exception as e:
-            io_logger.critical("ERROR: could not read masks from file, %s" % e)
+            io_logger.critical(f"ERROR: could not read masks from file, {e}")
             return None
 
 
@@ -347,9 +347,9 @@ def imread_3D(img_file):
             img, channel_axis=channel_axis, z_axis=z_axis, do_3D=True
         )
     except Exception as e:
-        io_logger.critical("ERROR: could not read file, %s" % e)
+        io_logger.critical(f"ERROR: could not read file, {e}")
         io_logger.critical(
-            "ERROR: Guessed z_axis: %s, channel_axis: %s" % (z_axis, channel_axis)
+            f"ERROR: Guessed z_axis: {z_axis}, channel_axis: {channel_axis}"
         )
         return None
 
