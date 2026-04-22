@@ -1,7 +1,9 @@
 """
 Copyright © 2025 Howard Hughes Medical Institute, Authored by Carsen Stringer , Michael Rariden and Marius Pachitariu.
 """
+
 from qtpy.QtWidgets import QAction
+
 from . import io
 
 
@@ -14,13 +16,15 @@ def mainmenu(parent):
     loadImg.triggered.connect(lambda: io._load_image(parent))
     file_menu.addAction(loadImg)
 
-    parent.autoloadMasks = QAction("Autoload masks from _masks.tif file", parent,
-                                   checkable=True)
+    parent.autoloadMasks = QAction(
+        "Autoload masks from _masks.tif file", parent, checkable=True
+    )
     parent.autoloadMasks.setChecked(False)
     file_menu.addAction(parent.autoloadMasks)
 
-    parent.disableAutosave = QAction("Disable autosave _seg.npy file", parent,
-                                     checkable=True)
+    parent.disableAutosave = QAction(
+        "Disable autosave _seg.npy file", parent, checkable=True
+    )
     parent.disableAutosave.setChecked(False)
     file_menu.addAction(parent.disableAutosave)
 
@@ -53,8 +57,9 @@ def mainmenu(parent):
     file_menu.addAction(parent.saveOutlines)
     parent.saveOutlines.setEnabled(False)
 
-    parent.saveROIs = QAction("Save outlines as .zip archive of &ROI files for ImageJ",
-                              parent)
+    parent.saveROIs = QAction(
+        "Save outlines as .zip archive of &ROI files for ImageJ", parent
+    )
     parent.saveROIs.setShortcut("Ctrl+R")
     parent.saveROIs.triggered.connect(lambda: io._save_rois(parent))
     file_menu.addAction(parent.saveROIs)
@@ -104,13 +109,13 @@ def modelmenu(parent):
     io._init_model_list(parent)
     model_menu = main_menu.addMenu("&Models")
     parent.addmodel = QAction("Add custom torch model to GUI", parent)
-    #parent.addmodel.setShortcut("Ctrl+A")
+    # parent.addmodel.setShortcut("Ctrl+A")
     parent.addmodel.triggered.connect(parent.add_model)
     parent.addmodel.setEnabled(True)
     model_menu.addAction(parent.addmodel)
 
     parent.removemodel = QAction("Remove selected custom model from GUI", parent)
-    #parent.removemodel.setShortcut("Ctrl+R")
+    # parent.removemodel.setShortcut("Ctrl+R")
     parent.removemodel.triggered.connect(parent.remove_model)
     parent.removemodel.setEnabled(True)
     model_menu.addAction(parent.removemodel)

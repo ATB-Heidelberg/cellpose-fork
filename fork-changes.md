@@ -2,6 +2,24 @@
 
 ## 2026-04-22
 
+### Apply all auto-fixable Ruff issues
+
+Ran `ruff check --fix` and `ruff format` across the entire `cellpose/` package, reducing pre-existing lint errors from 565 to 129. Reformatted 22 files.
+
+Remaining 129 issues all require manual decisions:
+
+| Rule | Count | Description |
+|---|---|---|
+| W291/W293 | 39 | Trailing whitespace inside docstrings/comments |
+| UP031 | 33 | `%`-style formatting → f-strings |
+| E722 | 27 | Bare `except:` → specific exception types |
+| F841 | 18 | Unused local variables |
+| F821 | 4 | Undefined names |
+| E711 | 3 | `== None` → `is None` |
+| E731 | 2 | Lambda assignments → `def` |
+| F401 | 2 | Unused imports (may be intentional re-exports) |
+| F811 | 1 | Redefined name |
+
 ### Switch from YAPF to Ruff
 
 Replaced the YAPF formatter with [Ruff](https://docs.astral.sh/ruff/), which handles both formatting and linting in a single fast tool.

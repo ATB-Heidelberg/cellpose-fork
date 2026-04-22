@@ -1,24 +1,35 @@
 """
 Copyright © 2025 Howard Hughes Medical Institute, Authored by Carsen Stringer , Michael Rariden and Marius Pachitariu.
 """
-import os, gc
-import numpy as np
+
+import gc
+import os
+
 import cv2
 import fastremap
+import numpy as np
 
-from ..io import imread, imread_2D, imread_3D, imsave, outlines_to_text, add_model, remove_model, save_rois
-from ..models import normalize_default, MODEL_DIR, MODEL_LIST_PATH, get_user_models
+from ..io import (
+    add_model,
+    imread,
+    imread_2D,
+    imread_3D,
+    imsave,
+    outlines_to_text,
+    remove_model,
+    save_rois,
+)
+from ..models import MODEL_DIR, MODEL_LIST_PATH, get_user_models, normalize_default
 from ..utils import masks_to_outlines, outlines_list
 
 try:
-    import qtpy
     from qtpy.QtWidgets import QFileDialog
+
     GUI = True
 except:
     GUI = False
 
 try:
-    import matplotlib.pyplot as plt
     MATPLOTLIB = True
 except:
     MATPLOTLIB = False
@@ -67,7 +78,7 @@ def _remove_model(parent, ind=None, verbose=True):
 
 
 def _get_train_set(image_names):
-    """ get training data and labels for images in current folder image_names"""
+    """get training data and labels for images in current folder image_names"""
     train_data, train_labels, train_files = [], [], []
     restore = None
     normalize_params = normalize_default
@@ -87,8 +98,11 @@ def _get_train_set(image_names):
                 restore = dat["restore"]
             else:
                 data = imread(image_name_full)
-            normalize_params = dat[
-                "normalize_params"] if "normalize_params" in dat else normalize_default
+            normalize_params = (
+                dat["normalize_params"]
+                if "normalize_params" in dat
+                else normalize_default
+            )
         if label_name is not None:
             train_files.append(image_name_full)
             train_data.append(data)
@@ -99,8 +113,8 @@ def _get_train_set(image_names):
 
 
 def _load_image(parent, filename=None, load_seg=True, load_3D=False):
-    """ load image with filename; if None, open QFileDialog
-    if image is grey change view to default to grey scale 
+    """load image with filename; if None, open QFileDialog
+    if image is grey change view to default to grey scale
     """
 
     if parent.load_3D:
@@ -116,18 +130,24 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
     if load_seg:
         if os.path.isfile(manual_file) and not parent.autoloadMasks.isChecked():
             if filename is not None:
-                image = (imread_2D(filename) if not load_3D else 
-                         imread_3D(filename))
+                image = imread_2D(filename) if not load_3D else imread_3D(filename)
             else:
                 image = None
-            _load_seg(parent, manual_file, image=image, image_file=filename,
-                      load_3D=load_3D)
+            _load_seg(
+                parent, manual_file, image=image, image_file=filename, load_3D=load_3D
+            )
             return
         elif parent.autoloadMasks.isChecked():
-            mask_file = os.path.splitext(filename)[0] + "_masks" + os.path.splitext(
-                filename)[-1]
-            mask_file = os.path.splitext(filename)[
-                0] + "_masks.tif" if not os.path.isfile(mask_file) else mask_file
+            mask_file = (
+                os.path.splitext(filename)[0]
+                + "_masks"
+                + os.path.splitext(filename)[-1]
+            )
+            mask_file = (
+                os.path.splitext(filename)[0] + "_masks.tif"
+                if not os.path.isfile(mask_file)
+                else mask_file
+            )
             load_mask = True if os.path.isfile(mask_file) else False
     try:
         print(f"GUI_INFO: loading image: {filename}")
@@ -154,12 +174,12 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
     # check if gray and adjust viewer:
     if len(np.unique(image[..., 1:])) == 1:
         parent.color = 4
-        parent.RGBDropDown.setCurrentIndex(4) # gray
+        parent.RGBDropDown.setCurrentIndex(4)  # gray
         parent.update_plot()
 
-        
+
 def _initialize_images(parent, image, load_3D=False):
-    """ format image for GUI
+    """format image for GUI
 
     assumes image is Z x W x H x C
 
@@ -180,7 +200,7 @@ def _initialize_images(parent, image, load_3D=False):
     parent.stack = parent.stack.astype(np.float32)
     parent.stack -= img_min
     if img_max > img_min + 1e-3:
-        parent.stack /= (img_max - img_min)
+        parent.stack /= img_max - img_min
     parent.stack *= 255
 
     if load_3D:
@@ -196,8 +216,10 @@ def _initialize_images(parent, image, load_3D=False):
     if hasattr(parent, "stack_filtered"):
         parent.Lyr, parent.Lxr = parent.stack_filtered.shape[-3:-1]
     elif parent.restore and "upsample" in parent.restore:
-        parent.Lyr, parent.Lxr = int(parent.Ly * parent.ratio), int(parent.Lx *
-                                                                    parent.ratio)
+        parent.Lyr, parent.Lxr = (
+            int(parent.Ly * parent.ratio),
+            int(parent.Lx * parent.ratio),
+        )
     else:
         parent.Lyr, parent.Lxr = parent.Ly, parent.Lx
     parent.clear_all()
@@ -231,7 +253,7 @@ def _initialize_images(parent, image, load_3D=False):
 
 
 def _load_seg(parent, filename=None, image=None, image_file=None, load_3D=False):
-    """ load *_seg.npy with filename; if None, open QFileDialog """
+    """load *_seg.npy with filename; if None, open QFileDialog"""
     if filename is None:
         name = QFileDialog.getOpenFileName(parent, "Load labelled data", filter="*.npy")
         filename = name[0]
@@ -262,8 +284,11 @@ def _load_seg(parent, filename=None, image=None, image_file=None, load_3D=False)
         if found_image:
             try:
                 print(parent.filename)
-                image = (imread_2D(parent.filename) if not load_3D else 
-                         imread_3D(parent.filename))
+                image = (
+                    imread_2D(parent.filename)
+                    if not load_3D
+                    else imread_3D(parent.filename)
+                )
             except:
                 parent.loaded = False
                 found_image = False
@@ -280,7 +305,7 @@ def _load_seg(parent, filename=None, image=None, image_file=None, load_3D=False)
         parent.filename = image_file
 
     parent.restore = None
-    parent.ratio = 1.
+    parent.ratio = 1.0
 
     if "normalize_params" in dat:
         parent.set_normalize_params(dat["normalize_params"])
@@ -300,8 +325,9 @@ def _load_seg(parent, filename=None, image=None, image_file=None, load_3D=False)
                     color = parent.colormap[col_rand, :3]
                 median = parent.add_mask(points=outline, color=color)
                 if median is not None:
-                    parent.cellcolors = np.append(parent.cellcolors,
-                                                  color[np.newaxis, :], axis=0)
+                    parent.cellcolors = np.append(
+                        parent.cellcolors, color[np.newaxis, :], axis=0
+                    )
                     parent.ncells += 1
         else:
             if dat["masks"].min() == -1:
@@ -311,7 +337,7 @@ def _load_seg(parent, filename=None, image=None, image_file=None, load_3D=False)
             if "colors" in dat and len(dat["colors"]) == dat["masks"].max():
                 colors = dat["colors"]
             else:
-                colors = parent.colormap[:parent.ncells.get(), :3]
+                colors = parent.colormap[: parent.ncells.get(), :3]
 
             _masks_to_gui(parent, dat["masks"], outlines=dat["outlines"], colors=colors)
 
@@ -344,8 +370,10 @@ def _load_seg(parent, filename=None, image=None, image_file=None, load_3D=False)
                 Ly, Lx = dat["masks"].shape[-2:]
                 for i in range(len(parent.flows)):
                     parent.flows[i] = cv2.resize(
-                        parent.flows[i].squeeze(), (Lx, Ly),
-                        interpolation=cv2.INTER_NEAREST)[np.newaxis, ...]
+                        parent.flows[i].squeeze(),
+                        (Lx, Ly),
+                        interpolation=cv2.INTER_NEAREST,
+                    )[np.newaxis, ...]
             if parent.NZ == 1:
                 parent.recompute_masks = True
             else:
@@ -366,7 +394,7 @@ def _load_seg(parent, filename=None, image=None, image_file=None, load_3D=False)
 
 
 def _load_masks(parent, filename=None):
-    """ load zeros-based masks (0=no cell, 1=cell 1, ...) """
+    """load zeros-based masks (0=no cell, 1=cell 1, ...)"""
     if filename is None:
         name = QFileDialog.getOpenFileName(parent, "Load masks (PNG or TIFF)")
         filename = name[0]
@@ -403,7 +431,7 @@ def _load_masks(parent, filename=None):
 
 
 def _masks_to_gui(parent, masks, outlines=None, colors=None):
-    """ masks loaded into GUI """
+    """masks loaded into GUI"""
     # get unique values
     shape = masks.shape
     if len(fastremap.unique(masks)) != masks.max() + 1:
@@ -413,14 +441,15 @@ def _masks_to_gui(parent, masks, outlines=None, colors=None):
         masks = masks.reshape(shape)
     if masks.ndim == 2:
         outlines = None
-    masks = masks.astype(np.uint16) if masks.max() < 2**16 - 1 else masks.astype(
-        np.uint32)
+    masks = (
+        masks.astype(np.uint16) if masks.max() < 2**16 - 1 else masks.astype(np.uint32)
+    )
     if parent.restore and "upsample" in parent.restore:
         parent.cellpix_resize = masks.copy()
         parent.cellpix = parent.cellpix_resize.copy()
         parent.cellpix_orig = cv2.resize(
-            masks.squeeze(), (parent.Lx0, parent.Ly0),
-            interpolation=cv2.INTER_NEAREST)[np.newaxis, :, :]
+            masks.squeeze(), (parent.Lx0, parent.Ly0), interpolation=cv2.INTER_NEAREST
+        )[np.newaxis, :, :]
         parent.resize = True
     else:
         parent.cellpix = masks
@@ -469,10 +498,11 @@ def _masks_to_gui(parent, masks, outlines=None, colors=None):
                 parent.outpix_orig = parent.outpix_orig[np.newaxis, :, :]
 
     parent.ncells.set(parent.cellpix.max())
-    colors = parent.colormap[:parent.ncells.get(), :3] if colors is None else colors
+    colors = parent.colormap[: parent.ncells.get(), :3] if colors is None else colors
     print("GUI_INFO: creating cellcolors and drawing masks")
-    parent.cellcolors = np.concatenate((np.array([[255, 255, 255]]), colors),
-                                       axis=0).astype(np.uint8)
+    parent.cellcolors = np.concatenate(
+        (np.array([[255, 255, 255]]), colors), axis=0
+    ).astype(np.uint8)
     if parent.ncells > 0:
         parent.draw_layer()
         parent.toggle_mask_ops()
@@ -487,7 +517,7 @@ def _masks_to_gui(parent, masks, outlines=None, colors=None):
 
 
 def _save_png(parent):
-    """ save masks to png or tiff (if 3D) """
+    """save masks to png or tiff (if 3D)"""
     filename = parent.filename
     base = os.path.splitext(filename)[0]
     if parent.NZ == 1:
@@ -503,7 +533,7 @@ def _save_png(parent):
 
 
 def _save_flows(parent):
-    """ save flows and cellprob to tiff """
+    """save flows and cellprob to tiff"""
     filename = parent.filename
     base = os.path.splitext(filename)[0]
     print("GUI_INFO: saving flows and cellprob to tiff")
@@ -519,11 +549,12 @@ def _save_flows(parent):
 
 
 def _save_rois(parent):
-    """ save masks as rois in .zip file for ImageJ """
+    """save masks as rois in .zip file for ImageJ"""
     filename = parent.filename
     if parent.NZ == 1:
         print(
-            f"GUI_INFO: saving {parent.cellpix[0].max()} ImageJ ROIs to .zip archive.")
+            f"GUI_INFO: saving {parent.cellpix[0].max()} ImageJ ROIs to .zip archive."
+        )
         save_rois(parent.cellpix[0], parent.filename)
     else:
         print("ERROR: cannot save 3D outlines")
@@ -543,14 +574,14 @@ def _save_outlines(parent):
 
 
 def _save_sets_with_check(parent):
-    """ Save masks and update *_seg.npy file. Use this function when saving should be optional
-     based on the disableAutosave checkbox. Otherwise, use _save_sets """
+    """Save masks and update *_seg.npy file. Use this function when saving should be optional
+    based on the disableAutosave checkbox. Otherwise, use _save_sets"""
     if not parent.disableAutosave.isChecked():
         _save_sets(parent)
 
 
 def _save_sets(parent):
-    """ save masks to *_seg.npy. This function should be used when saving
+    """save masks to *_seg.npy. This function should be used when saving
     is forced, e.g. when clicking the save button. Otherwise, use _save_sets_with_check
     """
     filename = parent.filename
@@ -560,76 +591,55 @@ def _save_sets(parent):
 
     if parent.NZ > 1:
         dat = {
-            "outlines":
-                parent.outpix,
-            "colors":
-                parent.cellcolors[1:],
-            "masks":
-                parent.cellpix,
+            "outlines": parent.outpix,
+            "colors": parent.cellcolors[1:],
+            "masks": parent.cellpix,
             "current_channel": (parent.color - 2) % 5,
-            "filename":
-                parent.filename,
-            "flows":
-                parent.flows,
-            "zdraw":
-                parent.zdraw,
-            "model_path":
-                parent.current_model_path
-                if hasattr(parent, "current_model_path") else 0,
-            "flow_threshold":
-                flow_threshold,
-            "cellprob_threshold":
-                cellprob_threshold,
-            "normalize_params":
-                parent.get_normalize_params(),
-            "restore":
-                parent.restore,
-            "ratio":
-                parent.ratio,
-            "diameter":
-                parent.segmentation_settings.diameter
+            "filename": parent.filename,
+            "flows": parent.flows,
+            "zdraw": parent.zdraw,
+            "model_path": parent.current_model_path
+            if hasattr(parent, "current_model_path")
+            else 0,
+            "flow_threshold": flow_threshold,
+            "cellprob_threshold": cellprob_threshold,
+            "normalize_params": parent.get_normalize_params(),
+            "restore": parent.restore,
+            "ratio": parent.ratio,
+            "diameter": parent.segmentation_settings.diameter,
         }
         if parent.restore is not None:
             dat["img_restore"] = parent.stack_filtered
     else:
         dat = {
-            "outlines":
-                parent.outpix.squeeze() if parent.restore is None or
-                not "upsample" in parent.restore else parent.outpix_resize.squeeze(),
-            "colors":
-                parent.cellcolors[1:],
-            "masks":
-                parent.cellpix.squeeze() if parent.restore is None or
-                not "upsample" in parent.restore else parent.cellpix_resize.squeeze(),
-            "filename":
-                parent.filename,
-            "flows":
-                parent.flows,
-            "ismanual":
-                parent.ismanual,
-            "manual_changes":
-                parent.track_changes,
-            "model_path":
-                parent.current_model_path
-                if hasattr(parent, "current_model_path") else 0,
-            "flow_threshold":
-                flow_threshold,
-            "cellprob_threshold":
-                cellprob_threshold,
-            "normalize_params":
-                parent.get_normalize_params(),
-            "restore":
-                parent.restore,
-            "ratio":
-                parent.ratio,
-            "diameter":
-                parent.segmentation_settings.diameter
+            "outlines": parent.outpix.squeeze()
+            if parent.restore is None or "upsample" not in parent.restore
+            else parent.outpix_resize.squeeze(),
+            "colors": parent.cellcolors[1:],
+            "masks": parent.cellpix.squeeze()
+            if parent.restore is None or "upsample" not in parent.restore
+            else parent.cellpix_resize.squeeze(),
+            "filename": parent.filename,
+            "flows": parent.flows,
+            "ismanual": parent.ismanual,
+            "manual_changes": parent.track_changes,
+            "model_path": parent.current_model_path
+            if hasattr(parent, "current_model_path")
+            else 0,
+            "flow_threshold": flow_threshold,
+            "cellprob_threshold": cellprob_threshold,
+            "normalize_params": parent.get_normalize_params(),
+            "restore": parent.restore,
+            "ratio": parent.ratio,
+            "diameter": parent.segmentation_settings.diameter,
         }
         if parent.restore is not None:
             dat["img_restore"] = parent.stack_filtered
     try:
         np.save(base + "_seg.npy", dat)
-        print("GUI_INFO: %d ROIs saved to %s" % (parent.ncells.get(), base + "_seg.npy"))
+        print(
+            "GUI_INFO: %d ROIs saved to %s" % (parent.ncells.get(), base + "_seg.npy")
+        )
     except Exception as e:
         print(f"ERROR: {e}")
     del dat

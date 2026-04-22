@@ -1,19 +1,32 @@
 """
 Copyright © 2025 Howard Hughes Medical Institute, Authored by Carsen Stringer , Michael Rariden and Marius Pachitariu.
 """
-from qtpy import QtGui, QtCore
-from qtpy.QtGui import QPixmap, QDoubleValidator
-from qtpy.QtWidgets import QWidget, QDialog, QGridLayout, QPushButton, QLabel, QLineEdit, QDialogButtonBox, QComboBox, QCheckBox, QVBoxLayout
-import pyqtgraph as pg
+
+import os
+import pathlib
+
 import numpy as np
-import pathlib, os
+import pyqtgraph as pg
+from qtpy import QtCore, QtGui
+from qtpy.QtGui import QDoubleValidator, QPixmap
+from qtpy.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QGridLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QWidget,
+)
 
 
 def stylesheet():
     return """
-        QToolTip { 
-                            background-color: black; 
-                            color: white; 
+        QToolTip {
+                            background-color: black;
+                            color: white;
                             border: black solid 1px
                             }
         QComboBox {color: white;
@@ -31,42 +44,42 @@ def stylesheet():
                     background: transparent;
                     border: none;
                     margin: 0px 0px 0px 0px;
-                } 
-                           
-        QGroupBox 
+                }
+
+        QGroupBox
             { border: 1px solid white; color: rgb(255,255,255);
                            border-radius: 6px;
                             margin-top: 8px;
-                            padding: 0px 0px;}            
-                           
-        QPushButton:pressed {Text-align: center; 
-                             background-color: rgb(150,50,150); 
+                            padding: 0px 0px;}
+
+        QPushButton:pressed {Text-align: center;
+                             background-color: rgb(150,50,150);
                              border-color: white;
                              color:white;}
-                            QToolTip { 
-                           background-color: black; 
-                           color: white; 
+                            QToolTip {
+                           background-color: black;
+                           color: white;
                            border: black solid 1px
                            }
-        QPushButton:!pressed {Text-align: center; 
+        QPushButton:!pressed {Text-align: center;
                                background-color: rgb(50,50,50);
                                 border-color: white;
                                color:white;}
-                                QToolTip { 
-                           background-color: black; 
-                           color: white; 
+                                QToolTip {
+                           background-color: black;
+                           color: white;
                            border: black solid 1px
                            }
-        QPushButton:disabled {Text-align: center; 
+        QPushButton:disabled {Text-align: center;
                              background-color: rgb(30,30,30);
                              border-color: white;
                               color:rgb(80,80,80);}
-                               QToolTip { 
-                           background-color: black; 
-                           color: white; 
+                               QToolTip {
+                           background-color: black;
+                           color: white;
                            border: black solid 1px
                            }
-                        
+
         """
 
 
@@ -93,8 +106,9 @@ class DarkPalette(QtGui.QPalette):
         self.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
         self.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
         self.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(0, 0, 0))
-        self.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Text,
-                      QtGui.QColor(128, 128, 128))
+        self.setColor(
+            QtGui.QPalette.Disabled, QtGui.QPalette.Text, QtGui.QColor(128, 128, 128)
+        )
         self.setColor(
             QtGui.QPalette.Disabled,
             QtGui.QPalette.ButtonText,
@@ -135,7 +149,6 @@ class DarkPalette(QtGui.QPalette):
 
 
 class ModelButton(QPushButton):
-
     def __init__(self, parent, model_name, text):
         super().__init__()
         self.setEnabled(False)
@@ -149,7 +162,6 @@ class ModelButton(QPushButton):
 
 
 class FilterButton(QPushButton):
-
     def __init__(self, parent, text):
         super().__init__()
         self.setEnabled(False)
@@ -162,11 +174,14 @@ class FilterButton(QPushButton):
         if self.model_type == "filter":
             parent.restore = "filter"
             normalize_params = parent.get_normalize_params()
-            if (normalize_params["sharpen_radius"] == 0 and
-                    normalize_params["smooth_radius"] == 0 and
-                    normalize_params["tile_norm_blocksize"] == 0):
+            if (
+                normalize_params["sharpen_radius"] == 0
+                and normalize_params["smooth_radius"] == 0
+                and normalize_params["tile_norm_blocksize"] == 0
+            ):
                 print(
-                    "GUI_ERROR: no filtering settings on (use custom filter settings)")
+                    "GUI_ERROR: no filtering settings on (use custom filter settings)"
+                )
                 parent.restore = None
                 return
             parent.restore = self.model_type
@@ -179,14 +194,14 @@ class FilterButton(QPushButton):
 
 
 class ObservableVariable(QtCore.QObject):
-    valueChanged = QtCore.Signal(object) 
+    valueChanged = QtCore.Signal(object)
 
     def __init__(self, initial=None):
         super().__init__()
         self._value = initial
 
     def set(self, new_value):
-        """ Use this method to get emit the value changing and update the ROI count"""
+        """Use this method to get emit the value changing and update the ROI count"""
         if new_value != self._value:
             self._value = new_value
             self.valueChanged.emit(new_value)
@@ -196,7 +211,7 @@ class ObservableVariable(QtCore.QObject):
 
     def __call__(self):
         return self._value
-    
+
     def reset(self):
         self.set(0)
 
@@ -205,28 +220,28 @@ class ObservableVariable(QtCore.QObject):
             raise TypeError("Value must be numeric.")
         self.set(self._value + amount)
         return self
-    
+
     def __radd__(self, other):
         return other + self._value
 
     def __add__(self, other):
         return other + self._value
-        
+
     def __isub__(self, amount):
         if not isinstance(amount, (int, float)):
             raise TypeError("Value must be numeric.")
         self.set(self._value - amount)
         return self
-    
+
     def __str__(self):
         return str(self._value)
-    
+
     def __lt__(self, x):
         return self._value < x
-    
+
     def __gt__(self, x):
         return self._value > x
-    
+
     def __eq__(self, x):
         return self._value == x
 
@@ -237,9 +252,10 @@ class NormalizationSettings(QWidget):
 
 
 class SegmentationSettings(QWidget):
-    """ Container for gui settings. Validation is done automatically so any attributes can 
-    be acessed without concern.  
+    """Container for gui settings. Validation is done automatically so any attributes can
+    be acessed without concern.
     """
+
     def __init__(self, font):
         super().__init__()
 
@@ -252,14 +268,18 @@ class SegmentationSettings(QWidget):
         ########################### Diameter ###########################
         # TODO: Validate inputs
         diam_qlabel = QLabel("diameter:")
-        diam_qlabel.setToolTip("diameter of cells in pixels. If not 30, image will be resized to this")
+        diam_qlabel.setToolTip(
+            "diameter of cells in pixels. If not 30, image will be resized to this"
+        )
         diam_qlabel.setFont(font)
         grid_layout.addWidget(diam_qlabel, row, 0, 1, 2)
         self.diameter_box = QLineEdit()
-        self.diameter_box.setToolTip("diameter of cells in pixels. If not blank, image will be resized relative to 30 pixel cell diameters")
+        self.diameter_box.setToolTip(
+            "diameter of cells in pixels. If not blank, image will be resized relative to 30 pixel cell diameters"
+        )
         self.diameter_box.setFont(font)
         self.diameter_box.setFixedWidth(40)
-        self.diameter_box.setText(' ')
+        self.diameter_box.setText(" ")
         grid_layout.addWidget(self.diameter_box, row, 2, 1, 2)
 
         row += 1
@@ -267,7 +287,9 @@ class SegmentationSettings(QWidget):
         ########################### Flow threshold ###########################
         # TODO: Validate inputs
         flow_threshold_qlabel = QLabel("flow\nthreshold:")
-        flow_threshold_qlabel.setToolTip("threshold on flow error to accept a mask (set higher to get more cells, e.g. in range from (0.1, 3.0), OR set to 0.0 to turn off so no cells discarded);\n press enter to recompute if model already run")
+        flow_threshold_qlabel.setToolTip(
+            "threshold on flow error to accept a mask (set higher to get more cells, e.g. in range from (0.1, 3.0), OR set to 0.0 to turn off so no cells discarded);\n press enter to recompute if model already run"
+        )
         flow_threshold_qlabel.setFont(font)
         grid_layout.addWidget(flow_threshold_qlabel, row, 0, 1, 2)
         self.flow_threshold_box = QLineEdit()
@@ -275,26 +297,34 @@ class SegmentationSettings(QWidget):
         self.flow_threshold_box.setFixedWidth(40)
         self.flow_threshold_box.setFont(font)
         grid_layout.addWidget(self.flow_threshold_box, row, 2, 1, 2)
-        self.flow_threshold_box.setToolTip("threshold on flow error to accept a mask (set higher to get more cells, e.g. in range from (0.1, 3.0), OR set to 0.0 to turn off so no cells discarded);\n press enter to recompute if model already run")
-        
+        self.flow_threshold_box.setToolTip(
+            "threshold on flow error to accept a mask (set higher to get more cells, e.g. in range from (0.1, 3.0), OR set to 0.0 to turn off so no cells discarded);\n press enter to recompute if model already run"
+        )
+
         ########################### Cellprob threshold ###########################
         # TODO: Validate inputs
         cellprob_qlabel = QLabel("cellprob\nthreshold:")
-        cellprob_qlabel.setToolTip("threshold on cellprob output to seed cell masks (set lower to include more pixels or higher to include fewer, e.g. in range from (-6, 6)); \n press enter to recompute if model already run")
+        cellprob_qlabel.setToolTip(
+            "threshold on cellprob output to seed cell masks (set lower to include more pixels or higher to include fewer, e.g. in range from (-6, 6)); \n press enter to recompute if model already run"
+        )
         cellprob_qlabel.setFont(font)
         grid_layout.addWidget(cellprob_qlabel, row, 4, 1, 2)
         self.cellprob_threshold_box = QLineEdit()
         self.cellprob_threshold_box.setText("0.0")
         self.cellprob_threshold_box.setFixedWidth(40)
         self.cellprob_threshold_box.setFont(font)
-        self.cellprob_threshold_box.setToolTip("threshold on cellprob output to seed cell masks (set lower to include more pixels or higher to include fewer, e.g. in range from (-6, 6)); \n press enter to recompute if model already run")
+        self.cellprob_threshold_box.setToolTip(
+            "threshold on cellprob output to seed cell masks (set lower to include more pixels or higher to include fewer, e.g. in range from (-6, 6)); \n press enter to recompute if model already run"
+        )
         grid_layout.addWidget(self.cellprob_threshold_box, row, 6, 1, 2)
 
         row += 1
 
         ########################### Norm percentiles ###########################
         norm_percentiles_qlabel = QLabel("norm percentiles:")
-        norm_percentiles_qlabel.setToolTip("sets normalization percentiles for segmentation and denoising\n(pixels at lower percentile set to 0.0 and at upper set to 1.0 for network)")
+        norm_percentiles_qlabel.setToolTip(
+            "sets normalization percentiles for segmentation and denoising\n(pixels at lower percentile set to 0.0 and at upper set to 1.0 for network)"
+        )
         norm_percentiles_qlabel.setFont(font)
         grid_layout.addWidget(norm_percentiles_qlabel, row, 0, 1, 8)
 
@@ -302,7 +332,7 @@ class SegmentationSettings(QWidget):
         validator = QDoubleValidator(0.0, 100.0, 2)
         validator.setNotation(QDoubleValidator.StandardNotation)
 
-        low_norm_qlabel = QLabel('lower:')
+        low_norm_qlabel = QLabel("lower:")
         low_norm_qlabel.setToolTip("pixels at this percentile set to 0 (default 1.0)")
         low_norm_qlabel.setFont(font)
         grid_layout.addWidget(low_norm_qlabel, row, 0, 1, 2)
@@ -310,12 +340,16 @@ class SegmentationSettings(QWidget):
         self.norm_percentile_low_box.setText("1.0")
         self.norm_percentile_low_box.setFont(font)
         self.norm_percentile_low_box.setFixedWidth(40)
-        self.norm_percentile_low_box.setToolTip("pixels at this percentile set to 0 (default 1.0)")
+        self.norm_percentile_low_box.setToolTip(
+            "pixels at this percentile set to 0 (default 1.0)"
+        )
         self.norm_percentile_low_box.setValidator(validator)
-        self.norm_percentile_low_box.editingFinished.connect(self.validate_normalization_range)
+        self.norm_percentile_low_box.editingFinished.connect(
+            self.validate_normalization_range
+        )
         grid_layout.addWidget(self.norm_percentile_low_box, row, 2, 1, 1)
 
-        high_norm_qlabel = QLabel('upper:')
+        high_norm_qlabel = QLabel("upper:")
         high_norm_qlabel.setToolTip("pixels at this percentile set to 1 (default 99.0)")
         high_norm_qlabel.setFont(font)
         grid_layout.addWidget(high_norm_qlabel, row, 4, 1, 2)
@@ -323,9 +357,13 @@ class SegmentationSettings(QWidget):
         self.norm_percentile_high_box.setText("99.0")
         self.norm_percentile_high_box.setFont(font)
         self.norm_percentile_high_box.setFixedWidth(40)
-        self.norm_percentile_high_box.setToolTip("pixels at this percentile set to 1 (default 99.0)")
+        self.norm_percentile_high_box.setToolTip(
+            "pixels at this percentile set to 1 (default 99.0)"
+        )
         self.norm_percentile_high_box.setValidator(validator)
-        self.norm_percentile_high_box.editingFinished.connect(self.validate_normalization_range)
+        self.norm_percentile_high_box.editingFinished.connect(
+            self.validate_normalization_range
+        )
         grid_layout.addWidget(self.norm_percentile_high_box, row, 6, 1, 2)
 
         row += 1
@@ -335,13 +373,17 @@ class SegmentationSettings(QWidget):
         # TODO: input validation
         niter_qlabel = QLabel("niter dynamics:")
         niter_qlabel.setFont(font)
-        niter_qlabel.setToolTip("number of iterations for dynamics (0 uses default based on diameter); use 2000 for bacteria")
+        niter_qlabel.setToolTip(
+            "number of iterations for dynamics (0 uses default based on diameter); use 2000 for bacteria"
+        )
         grid_layout.addWidget(niter_qlabel, row, 0, 1, 4)
         self.niter_box = QLineEdit()
         self.niter_box.setText("0")
         self.niter_box.setFixedWidth(40)
         self.niter_box.setFont(font)
-        self.niter_box.setToolTip("number of iterations for dynamics (0 uses default based on diameter); use 2000 for bacteria")
+        self.niter_box.setToolTip(
+            "number of iterations for dynamics (0 uses default based on diameter); use 2000 for bacteria"
+        )
         grid_layout.addWidget(self.niter_box, row, 4, 1, 2)
 
         self.setLayout(grid_layout)
@@ -349,13 +391,13 @@ class SegmentationSettings(QWidget):
     def validate_normalization_range(self):
         low_text = self.norm_percentile_low_box.text()
         high_text = self.norm_percentile_high_box.text()
-        
+
         if not low_text or low_text.isspace():
-            self.norm_percentile_low_box.setText('1.0')
-            low_text = '1.0'
+            self.norm_percentile_low_box.setText("1.0")
+            low_text = "1.0"
         elif not high_text or high_text.isspace():
-            self.norm_percentile_high_box.setText('1.0')
-            high_text = '99.0'
+            self.norm_percentile_high_box.setText("1.0")
+            high_text = "99.0"
 
         low = float(low_text)
         high = float(high_text)
@@ -371,52 +413,50 @@ class SegmentationSettings(QWidget):
 
     @property
     def low_percentile(self):
-        """ Also validate the low input by returning 1.0 if text doesn't work """
+        """Also validate the low input by returning 1.0 if text doesn't work"""
         low_text = self.norm_percentile_low_box.text()
         if not low_text or low_text.isspace():
-            self.norm_percentile_low_box.setText('1.0')
-            low_text = '1.0'
+            self.norm_percentile_low_box.setText("1.0")
+            low_text = "1.0"
         return float(self.norm_percentile_low_box.text())
-    
+
     @property
     def high_percentile(self):
-        """ Also validate the high input by returning 99.0 if text doesn't work """
+        """Also validate the high input by returning 99.0 if text doesn't work"""
         high_text = self.norm_percentile_high_box.text()
         if not high_text or high_text.isspace():
-            self.norm_percentile_high_box.setText('99.0')
-            high_text = '99.0'
+            self.norm_percentile_high_box.setText("99.0")
+            high_text = "99.0"
         return float(self.norm_percentile_high_box.text())
-    
+
     @property
     def diameter(self):
-        """ Get the diameter from the diameter box, if box isn't a number return None"""
+        """Get the diameter from the diameter box, if box isn't a number return None"""
         try:
             d = float(self.diameter_box.text())
         except ValueError:
             d = None
-        return d 
-    
+        return d
+
     @property
     def flow_threshold(self):
         return float(self.flow_threshold_box.text())
-    
+
     @property
     def cellprob_threshold(self):
         return float(self.cellprob_threshold_box.text())
-    
+
     @property
     def niter(self):
         num = int(self.niter_box.text())
         if num < 1:
-            self.niter_box.setText('200')
+            self.niter_box.setText("200")
             return 200
         else:
             return num
 
 
-
 class TrainWindow(QDialog):
-
     def __init__(self, parent, model_strings):
         super().__init__(parent)
         self.setGeometry(100, 100, 900, 550)
@@ -459,7 +499,7 @@ class TrainWindow(QDialog):
         yoff += len(labels)
 
         yoff += 1
-        self.use_norm = QCheckBox(f"use restored/filtered image")
+        self.use_norm = QCheckBox("use restored/filtered image")
         self.use_norm.setChecked(True)
 
         yoff += 2
@@ -507,15 +547,14 @@ class TrainWindow(QDialog):
             "weight_decay": float(self.edits[1].text()),
             "n_epochs": int(self.edits[2].text()),
             "model_name": self.edits[3].text(),
-            #"use_norm": True if self.use_norm.isChecked() else False,
+            # "use_norm": True if self.use_norm.isChecked() else False,
         }
         self.done(1)
 
 
 class ExampleGUI(QDialog):
-
     def __init__(self, parent=None):
-        super(ExampleGUI, self).__init__(parent)
+        super().__init__(parent)
         self.setGeometry(100, 100, 1300, 900)
         self.setWindowTitle("GUI layout")
         self.win = QWidget(self)
@@ -531,9 +570,8 @@ class ExampleGUI(QDialog):
 
 
 class HelpWindow(QDialog):
-
     def __init__(self, parent=None):
-        super(HelpWindow, self).__init__(parent)
+        super().__init__(parent)
         self.setGeometry(100, 50, 700, 1000)
         self.setWindowTitle("cellpose help")
         self.win = QWidget(self)
@@ -541,7 +579,7 @@ class HelpWindow(QDialog):
         self.win.setLayout(layout)
 
         text_file = pathlib.Path(__file__).parent.joinpath("guihelpwindowtext.html")
-        with open(str(text_file.resolve()), "r") as f:
+        with open(str(text_file.resolve())) as f:
             text = f.read()
 
         label = QLabel(text)
@@ -552,9 +590,8 @@ class HelpWindow(QDialog):
 
 
 class TrainHelpWindow(QDialog):
-
     def __init__(self, parent=None):
-        super(TrainHelpWindow, self).__init__(parent)
+        super().__init__(parent)
         self.setGeometry(100, 50, 700, 300)
         self.setWindowTitle("training instructions")
         self.win = QWidget(self)
@@ -562,8 +599,9 @@ class TrainHelpWindow(QDialog):
         self.win.setLayout(layout)
 
         text_file = pathlib.Path(__file__).parent.joinpath(
-            "guitrainhelpwindowtext.html")
-        with open(str(text_file.resolve()), "r") as f:
+            "guitrainhelpwindowtext.html"
+        )
+        with open(str(text_file.resolve())) as f:
             text = f.read()
 
         label = QLabel(text)
@@ -575,11 +613,28 @@ class TrainHelpWindow(QDialog):
 
 
 class ViewBoxNoRightDrag(pg.ViewBox):
-
-    def __init__(self, parent=None, border=None, lockAspect=False, enableMouse=True,
-                 invertY=False, enableMenu=True, name=None, invertX=False):
-        pg.ViewBox.__init__(self, None, border, lockAspect, enableMouse, invertY,
-                            enableMenu, name, invertX)
+    def __init__(
+        self,
+        parent=None,
+        border=None,
+        lockAspect=False,
+        enableMouse=True,
+        invertY=False,
+        enableMenu=True,
+        name=None,
+        invertX=False,
+    ):
+        pg.ViewBox.__init__(
+            self,
+            None,
+            border,
+            lockAspect,
+            enableMouse,
+            invertY,
+            enableMenu,
+            name,
+            invertX,
+        )
         self.parent = parent
         self.axHistoryPointer = -1
 
@@ -618,7 +673,7 @@ class ImageDraw(pg.ImageItem):
     sigImageChanged = QtCore.Signal()
 
     def __init__(self, image=None, viewbox=None, parent=None, **kargs):
-        super(ImageDraw, self).__init__()
+        super().__init__()
         self.levels = np.array([0, 255])
         self.lut = None
         self.autoDownsample = False
@@ -631,12 +686,19 @@ class ImageDraw(pg.ImageItem):
         self.parent.in_stroke = False
 
     def mouseClickEvent(self, ev):
-        if (self.parent.masksOn or
-                self.parent.outlinesOn) and not self.parent.removing_region:
+        if (
+            self.parent.masksOn or self.parent.outlinesOn
+        ) and not self.parent.removing_region:
             is_right_click = ev.button() == QtCore.Qt.RightButton
-            if self.parent.loaded \
-                    and (is_right_click or ev.modifiers() & QtCore.Qt.ShiftModifier and not ev.double())\
-                    and not self.parent.deleting_multiple:
+            if (
+                self.parent.loaded
+                and (
+                    is_right_click
+                    or ev.modifiers() & QtCore.Qt.ShiftModifier
+                    and not ev.double()
+                )
+                and not self.parent.deleting_multiple
+            ):
                 if not self.parent.in_stroke:
                     ev.accept()
                     self.create_start(ev.pos())
@@ -658,7 +720,10 @@ class ImageDraw(pg.ImageItem):
                                 self.parent.remove_cell(idx)
                             elif ev.modifiers() & QtCore.Qt.AltModifier:
                                 self.parent.merge_cells(idx)
-                            elif self.parent.masksOn and not self.parent.deleting_multiple:
+                            elif (
+                                self.parent.masksOn
+                                and not self.parent.deleting_multiple
+                            ):
                                 self.parent.unselect_cell()
                                 self.parent.select_cell(idx)
                             elif self.parent.deleting_multiple:
@@ -687,12 +752,14 @@ class ImageDraw(pg.ImageItem):
             ev.acceptClicks(QtCore.Qt.RightButton)
 
     def create_start(self, pos):
-        self.scatter = pg.ScatterPlotItem([pos.x()], [pos.y()], pxMode=False,
-                                          pen=pg.mkPen(color=(255, 0, 0),
-                                                       width=self.parent.brush_size),
-                                          size=max(3 * 2,
-                                                   self.parent.brush_size * 1.8 * 2),
-                                          brush=None)
+        self.scatter = pg.ScatterPlotItem(
+            [pos.x()],
+            [pos.y()],
+            pxMode=False,
+            pen=pg.mkPen(color=(255, 0, 0), width=self.parent.brush_size),
+            size=max(3 * 2, self.parent.brush_size * 1.8 * 2),
+            brush=None,
+        )
         self.parent.p0.addItem(self.scatter)
 
     def is_at_start(self, pos):
@@ -701,13 +768,14 @@ class ImageDraw(pg.ImageItem):
         # first check if you ever left the start
         if len(self.parent.current_stroke) > 3:
             stroke = np.array(self.parent.current_stroke)
-            dist = (((stroke[1:, 1:] -
-                      stroke[:1, 1:][np.newaxis, :, :])**2).sum(axis=-1))**0.5
+            dist = (
+                ((stroke[1:, 1:] - stroke[:1, 1:][np.newaxis, :, :]) ** 2).sum(axis=-1)
+            ) ** 0.5
             dist = dist.flatten()
             has_left = (dist > thresh_out).nonzero()[0]
             if len(has_left) > 0:
                 first_left = np.sort(has_left)[0]
-                has_returned = (dist[max(4, first_left + 1):] < thresh_in).sum()
+                has_returned = (dist[max(4, first_left + 1) :] < thresh_in).sum()
                 if has_returned > 0:
                     return True
                 else:
@@ -723,12 +791,16 @@ class ImageDraw(pg.ImageItem):
             self.parent.current_stroke = np.array(self.parent.current_stroke)
             ioutline = self.parent.current_stroke[:, 3] == 1
             self.parent.current_point_set.append(
-                list(self.parent.current_stroke[ioutline]))
+                list(self.parent.current_stroke[ioutline])
+            )
             self.parent.current_stroke = []
             if self.parent.autosave:
                 self.parent.add_set()
-        if len(self.parent.current_point_set) and len(
-                self.parent.current_point_set[0]) > 0 and self.parent.autosave:
+        if (
+            len(self.parent.current_point_set)
+            and len(self.parent.current_point_set[0]) > 0
+            and self.parent.autosave
+        ):
             self.parent.add_set()
         self.parent.in_stroke = False
 
@@ -785,7 +857,7 @@ class ImageDraw(pg.ImageItem):
         self.drawKernel = kernel
         self.drawKernelCenter = [
             int(np.floor(kernel.shape[0] / 2)),
-            int(np.floor(kernel.shape[1] / 2))
+            int(np.floor(kernel.shape[1] / 2)),
         ]
         onmask = 255 * kernel[:, :, np.newaxis]
         offmask = np.zeros((bs, bs, 1))

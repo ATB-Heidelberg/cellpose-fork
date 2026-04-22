@@ -1,16 +1,18 @@
-import time
+import logging
 import os
-import numpy as np
-from cellpose import io, utils, models, dynamics
-from cellpose.transforms import normalize_img, random_rotate_and_resize
+import time
 from pathlib import Path
+
+import numpy as np
 import torch
 from torch import nn
 from tqdm import trange
 
-import logging
+from cellpose import dynamics, io, models, utils
+from cellpose.transforms import normalize_img, random_rotate_and_resize
 
 train_logger = logging.getLogger(__name__)
+
 
 def _loss_fn_class(lbl, y, class_weights=None):
     """
@@ -19,7 +21,7 @@ def _loss_fn_class(lbl, y, class_weights=None):
     Args:
         lbl (numpy.ndarray): True labels (cellprob, flowsY, flowsX).
         y (torch.Tensor): Predicted values (flowsY, flowsX, cellprob).
-        
+
     Returns:
         torch.Tensor: Loss value.
 
@@ -27,8 +29,9 @@ def _loss_fn_class(lbl, y, class_weights=None):
 
     criterion3 = nn.CrossEntropyLoss(reduction="mean", weight=class_weights)
     loss3 = criterion3(y[:, :-3], lbl[:, 0].long())
-    
+
     return loss3
+
 
 def _loss_fn_seg(lbl, y, device):
     """
@@ -45,12 +48,13 @@ def _loss_fn_seg(lbl, y, device):
     """
     criterion = nn.MSELoss(reduction="mean")
     criterion2 = nn.BCEWithLogitsLoss(reduction="mean")
-    veci = 5. * lbl[:, -2:]
+    veci = 5.0 * lbl[:, -2:]
     loss = criterion(y[:, -3:-1], veci)
-    loss /= 2.
+    loss /= 2.0
     loss2 = criterion2(y[:, -1], (lbl[:, -3] > 0.5).to(y.dtype))
     loss = loss + loss2
     return loss
+
 
 def _reshape_norm(data, channel_axis=None, normalize_params={"normalize": False}):
     """
@@ -63,30 +67,40 @@ def _reshape_norm(data, channel_axis=None, normalize_params={"normalize": False}
     Returns:
         list: List of reshaped and normalized data.
     """
-    if (np.array([td.ndim!=3 for td in data]).sum() > 0 or
-        np.array([td.shape[0]!=3 for td in data]).sum() > 0):
+    if (
+        np.array([td.ndim != 3 for td in data]).sum() > 0
+        or np.array([td.shape[0] != 3 for td in data]).sum() > 0
+    ):
         data_new = []
         for td in data:
             if td.ndim == 3:
-                channel_axis0 = channel_axis if channel_axis is not None else np.array(td.shape).argmin()
-                # put channel axis first 
+                channel_axis0 = (
+                    channel_axis
+                    if channel_axis is not None
+                    else np.array(td.shape).argmin()
+                )
+                # put channel axis first
                 td = np.moveaxis(td, channel_axis0, 0)
-                td = td[:3] # keep at most 3 channels
+                td = td[:3]  # keep at most 3 channels
             if td.ndim == 2 or (td.ndim == 3 and td.shape[0] == 1):
-                td = np.stack((td, 0*td, 0*td), axis=0)
+                td = np.stack((td, 0 * td, 0 * td), axis=0)
             elif td.ndim == 3 and td.shape[0] < 3:
-                td = np.concatenate((td, 0*td[:1]), axis=0)
+                td = np.concatenate((td, 0 * td[:1]), axis=0)
             data_new.append(td)
         data = data_new
     if normalize_params["normalize"]:
-        data = [
-            normalize_img(td, normalize=normalize_params, axis=0)
-            for td in data
-        ]
+        data = [normalize_img(td, normalize=normalize_params, axis=0) for td in data]
     return data
 
-def _get_batch(inds, data=None, labels=None, files=None, labels_files=None,
-               normalize_params={"normalize": False}):
+
+def _get_batch(
+    inds,
+    data=None,
+    labels=None,
+    files=None,
+    labels_files=None,
+    normalize_params={"normalize": False},
+):
     """
     Get a batch of images and labels.
 
@@ -112,15 +126,16 @@ def _get_batch(inds, data=None, labels=None, files=None, labels_files=None,
         lbls = [labels[i][1:] for i in inds]
     return imgs, lbls
 
-def _reshape_norm_save(files, channels=None, channel_axis=None,
-                       normalize_params={"normalize": False}):
-    """ not currently used -- normalization happening on each batch if not load_files """
+
+def _reshape_norm_save(
+    files, channels=None, channel_axis=None, normalize_params={"normalize": False}
+):
+    """not currently used -- normalization happening on each batch if not load_files"""
     files_new = []
     for f in trange(files):
         td = io.imread(f)
         if channels is not None:
-            td = convert_image(td, channels=channels,
-                                          channel_axis=channel_axis)
+            td = convert_image(td, channels=channels, channel_axis=channel_axis)
             td = td.transpose(2, 0, 1)
         if normalize_params["normalize"]:
             td = normalize_img(td, normalize=normalize_params, axis=0)
@@ -136,12 +151,24 @@ def _reshape_norm_save(files, channels=None, channel_axis=None,
     #                     channel_axis=channel_axis, normalize_params=normalize_params)
 
 
-def _process_train_test(train_data=None, train_labels=None, train_files=None,
-                        train_labels_files=None, train_probs=None, test_data=None,
-                        test_labels=None, test_files=None, test_labels_files=None,
-                        test_probs=None, load_files=True, min_train_masks=5,
-                        compute_flows=False, normalize_params={"normalize": False}, 
-                        channel_axis=None, device=None):
+def _process_train_test(
+    train_data=None,
+    train_labels=None,
+    train_files=None,
+    train_labels_files=None,
+    train_probs=None,
+    test_data=None,
+    test_labels=None,
+    test_files=None,
+    test_labels_files=None,
+    test_probs=None,
+    load_files=True,
+    min_train_masks=5,
+    compute_flows=False,
+    normalize_params={"normalize": False},
+    channel_axis=None,
+    device=None,
+):
     """
     Process train and test data.
 
@@ -169,8 +196,14 @@ def _process_train_test(train_data=None, train_labels=None, train_files=None,
         tuple: A tuple containing the processed train and test data and sampling probabilities and diameters.
     """
     if device == None:
-        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('mps') if torch.backends.mps.is_available() else None
-    
+        device = (
+            torch.device("cuda")
+            if torch.cuda.is_available()
+            else torch.device("mps")
+            if torch.backends.mps.is_available()
+            else None
+        )
+
     if train_data is not None and train_labels is not None:
         # if data is loaded
         nimg = len(train_data)
@@ -183,8 +216,9 @@ def _process_train_test(train_data=None, train_labels=None, train_files=None,
                 os.path.splitext(str(tf))[0] + "_flows.tif" for tf in train_files
             ]
             train_labels_files = [tf for tf in train_labels_files if os.path.exists(tf)]
-        if (test_data is not None or
-                test_files is not None) and test_labels_files is None:
+        if (
+            test_data is not None or test_files is not None
+        ) and test_labels_files is None:
             test_labels_files = [
                 os.path.splitext(str(tf))[0] + "_flows.tif" for tf in test_files
             ]
@@ -202,13 +236,15 @@ def _process_train_test(train_data=None, train_labels=None, train_files=None,
             test_labels = [io.imread(test_labels_files[i]) for i in trange(nimg_test)]
 
     ### check that arrays are correct size
-    if ((train_labels is not None and nimg != len(train_labels)) or
-        (train_labels_files is not None and nimg != len(train_labels_files))):
+    if (train_labels is not None and nimg != len(train_labels)) or (
+        train_labels_files is not None and nimg != len(train_labels_files)
+    ):
         error_message = "train data and labels not same length"
         train_logger.critical(error_message)
         raise ValueError(error_message)
-    if ((test_labels is not None and nimg_test != len(test_labels)) or
-        (test_labels_files is not None and nimg_test != len(test_labels_files))):
+    if (test_labels is not None and nimg_test != len(test_labels)) or (
+        test_labels_files is not None and nimg_test != len(test_labels_files)
+    ):
         train_logger.warning("test data and labels not same length, not using")
         test_data, test_files = None, None
     if train_labels is not None:
@@ -223,40 +259,50 @@ def _process_train_test(train_data=None, train_labels=None, train_files=None,
 
     ### check that flows are computed
     if train_labels is not None:
-        train_labels = dynamics.labels_to_flows(train_labels, files=train_files,
-                                                device=device)
+        train_labels = dynamics.labels_to_flows(
+            train_labels, files=train_files, device=device
+        )
         if test_labels is not None:
-            test_labels = dynamics.labels_to_flows(test_labels, files=test_files,
-                                                   device=device)
+            test_labels = dynamics.labels_to_flows(
+                test_labels, files=test_files, device=device
+            )
     elif compute_flows:
         for k in trange(nimg):
-            tl = dynamics.labels_to_flows(io.imread(train_labels_files),
-                                          files=train_files, device=device)
+            tl = dynamics.labels_to_flows(
+                io.imread(train_labels_files), files=train_files, device=device
+            )
         if test_files is not None:
             for k in trange(nimg_test):
-                tl = dynamics.labels_to_flows(io.imread(test_labels_files),
-                                              files=test_files, device=device)
+                tl = dynamics.labels_to_flows(
+                    io.imread(test_labels_files), files=test_files, device=device
+                )
 
     ### compute diameters
     nmasks = np.zeros(nimg)
     diam_train = np.zeros(nimg)
     train_logger.info(">>> computing diameters")
     for k in trange(nimg):
-        tl = (train_labels[k][0]
-              if train_labels is not None else io.imread(train_labels_files[k])[0])
+        tl = (
+            train_labels[k][0]
+            if train_labels is not None
+            else io.imread(train_labels_files[k])[0]
+        )
         diam_train[k], dall = utils.diameters(tl)
         nmasks[k] = len(dall)
-    diam_train[diam_train < 5] = 5.
+    diam_train[diam_train < 5] = 5.0
     if test_data is not None:
         diam_test = np.array(
-            [utils.diameters(test_labels[k][0])[0] for k in trange(len(test_labels))])
-        diam_test[diam_test < 5] = 5.
+            [utils.diameters(test_labels[k][0])[0] for k in trange(len(test_labels))]
+        )
+        diam_test[diam_test < 5] = 5.0
     elif test_labels_files is not None:
-        diam_test = np.array([
-            utils.diameters(io.imread(test_labels_files[k])[0])[0]
-            for k in trange(len(test_labels_files))
-        ])
-        diam_test[diam_test < 5] = 5.
+        diam_test = np.array(
+            [
+                utils.diameters(io.imread(test_labels_files[k])[0])[0]
+                for k in trange(len(test_labels_files))
+            ]
+        )
+        diam_test[diam_test < 5] = 5.0
     else:
         diam_test = None
 
@@ -281,12 +327,16 @@ def _process_train_test(train_data=None, train_labels=None, train_files=None,
             nimg = len(train_data)
 
     ### normalize probabilities
-    train_probs = 1. / nimg * np.ones(nimg,
-                                      "float64") if train_probs is None else train_probs
+    train_probs = (
+        1.0 / nimg * np.ones(nimg, "float64") if train_probs is None else train_probs
+    )
     train_probs /= train_probs.sum()
     if test_files is not None or test_data is not None:
-        test_probs = 1. / nimg_test * np.ones(
-            nimg_test, "float64") if test_probs is None else test_probs
+        test_probs = (
+            1.0 / nimg_test * np.ones(nimg_test, "float64")
+            if test_probs is None
+            else test_probs
+        )
         test_probs /= test_probs.sum()
 
     ### reshape and normalize train / test data
@@ -294,32 +344,70 @@ def _process_train_test(train_data=None, train_labels=None, train_files=None,
     if normalize_params["normalize"]:
         train_logger.info(f">>> normalizing {normalize_params}")
     if train_data is not None:
-        train_data = _reshape_norm(train_data, channel_axis=channel_axis, 
-                                   normalize_params=normalize_params)
+        train_data = _reshape_norm(
+            train_data, channel_axis=channel_axis, normalize_params=normalize_params
+        )
         normed = True
     if test_data is not None:
-        test_data = _reshape_norm(test_data, channel_axis=channel_axis,
-                                  normalize_params=normalize_params)
+        test_data = _reshape_norm(
+            test_data, channel_axis=channel_axis, normalize_params=normalize_params
+        )
 
-    return (train_data, train_labels, train_files, train_labels_files, train_probs,
-            diam_train, test_data, test_labels, test_files, test_labels_files,
-            test_probs, diam_test, normed)
+    return (
+        train_data,
+        train_labels,
+        train_files,
+        train_labels_files,
+        train_probs,
+        diam_train,
+        test_data,
+        test_labels,
+        test_files,
+        test_labels_files,
+        test_probs,
+        diam_test,
+        normed,
+    )
 
 
-def train_seg(net, train_data=None, train_labels=None, train_files=None,
-              train_labels_files=None, train_probs=None, test_data=None,
-              test_labels=None, test_files=None, test_labels_files=None,
-              test_probs=None, channel_axis=None,
-              load_files=True, batch_size=1, learning_rate=1e-5, SGD=False,
-              n_epochs=100, weight_decay=0.1, normalize=True, compute_flows=False,
-              save_path=None, save_every=100, save_each=False, nimg_per_epoch=None,
-              nimg_test_per_epoch=None, rescale=False, scale_range=None, bsize=256,
-              min_train_masks=5, model_name=None, class_weights=None):
+def train_seg(
+    net,
+    train_data=None,
+    train_labels=None,
+    train_files=None,
+    train_labels_files=None,
+    train_probs=None,
+    test_data=None,
+    test_labels=None,
+    test_files=None,
+    test_labels_files=None,
+    test_probs=None,
+    channel_axis=None,
+    load_files=True,
+    batch_size=1,
+    learning_rate=1e-5,
+    SGD=False,
+    n_epochs=100,
+    weight_decay=0.1,
+    normalize=True,
+    compute_flows=False,
+    save_path=None,
+    save_every=100,
+    save_each=False,
+    nimg_per_epoch=None,
+    nimg_test_per_epoch=None,
+    rescale=False,
+    scale_range=None,
+    bsize=256,
+    min_train_masks=5,
+    model_name=None,
+    class_weights=None,
+):
     """
     Train the network with images for segmentation.
 
     Args:
-        net (object): The network model to train. If `net` is a bfloat16 model it will be converted to float32 for training. The saved models will be in float32, but the original model will be returned as the original dtype for consistency. 
+        net (object): The network model to train. If `net` is a bfloat16 model it will be converted to float32 for training. The saved models will be in float32, but the original model will be returned as the original dtype for consistency.
         train_data (List[np.ndarray], optional): List of arrays (2D or 3D) - images for training. Defaults to None.
         train_labels (List[np.ndarray], optional): List of arrays (2D or 3D) - labels for train_data, where 0=no masks; 1,2,...=mask labels. Defaults to None.
         train_files (List[str], optional): List of strings - file names for images in train_data (to save flows for future runs). Defaults to None.
@@ -349,14 +437,14 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
 
     Returns:
         tuple: A tuple containing the path to the saved model weights, training losses, and test losses.
-       
+
     """
     if SGD:
         train_logger.warning("SGD is deprecated, using AdamW instead")
 
     device = net.device
 
-    original_net_dtype = net.dtype 
+    original_net_dtype = net.dtype
     if net.dtype == torch.bfloat16:
         # NOTE: this produces a side effect of returning a network that is not of a guaranteed dtype \
         train_logger.info(">>> converting bfloat16 network to float32 for training")
@@ -372,27 +460,50 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
         normalize_params = models.normalize_default
         normalize_params["normalize"] = normalize
 
-    out = _process_train_test(train_data=train_data, train_labels=train_labels,
-                              train_files=train_files, train_labels_files=train_labels_files,
-                              train_probs=train_probs,
-                              test_data=test_data, test_labels=test_labels,
-                              test_files=test_files, test_labels_files=test_labels_files,
-                              test_probs=test_probs,
-                              load_files=load_files, min_train_masks=min_train_masks,
-                              compute_flows=compute_flows, channel_axis=channel_axis,
-                              normalize_params=normalize_params, device=net.device)
-    (train_data, train_labels, train_files, train_labels_files, train_probs, diam_train,
-     test_data, test_labels, test_files, test_labels_files, test_probs, diam_test,
-     normed) = out
+    out = _process_train_test(
+        train_data=train_data,
+        train_labels=train_labels,
+        train_files=train_files,
+        train_labels_files=train_labels_files,
+        train_probs=train_probs,
+        test_data=test_data,
+        test_labels=test_labels,
+        test_files=test_files,
+        test_labels_files=test_labels_files,
+        test_probs=test_probs,
+        load_files=load_files,
+        min_train_masks=min_train_masks,
+        compute_flows=compute_flows,
+        channel_axis=channel_axis,
+        normalize_params=normalize_params,
+        device=net.device,
+    )
+    (
+        train_data,
+        train_labels,
+        train_files,
+        train_labels_files,
+        train_probs,
+        diam_train,
+        test_data,
+        test_labels,
+        test_files,
+        test_labels_files,
+        test_probs,
+        diam_test,
+        normed,
+    ) = out
     # already normalized, do not normalize during training
     if normed:
         kwargs = {}
     else:
         kwargs = {"normalize_params": normalize_params, "channel_axis": channel_axis}
-    
+
     net.diam_labels.data = torch.Tensor([diam_train.mean()]).to(device)
 
-    if class_weights is not None and isinstance(class_weights, (list, np.ndarray, tuple)):
+    if class_weights is not None and isinstance(
+        class_weights, (list, np.ndarray, tuple)
+    ):
         class_weights = torch.from_numpy(class_weights).to(device).float()
         print(class_weights)
 
@@ -400,7 +511,9 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
     nimg_test = len(test_data) if test_data is not None else None
     nimg_test = len(test_files) if test_files is not None else nimg_test
     nimg_per_epoch = nimg if nimg_per_epoch is None else nimg_per_epoch
-    nimg_test_per_epoch = nimg_test if nimg_test_per_epoch is None else nimg_test_per_epoch
+    nimg_test_per_epoch = (
+        nimg_test if nimg_test_per_epoch is None else nimg_test_per_epoch
+    )
 
     # learning rate schedule
     LR = np.linspace(0, learning_rate, 10)
@@ -418,8 +531,9 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
     train_logger.info(
         f">>> AdamW, learning_rate={learning_rate:0.5f}, weight_decay={weight_decay:0.5f}"
     )
-    optimizer = torch.optim.AdamW(net.parameters(), lr=learning_rate,
-                                    weight_decay=weight_decay)
+    optimizer = torch.optim.AdamW(
+        net.parameters(), lr=learning_rate, weight_decay=weight_decay
+    )
 
     t0 = time.time()
     model_name = f"cellpose_{t0}" if model_name is None else model_name
@@ -435,27 +549,36 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
         np.random.seed(iepoch)
         if nimg != nimg_per_epoch:
             # choose random images for epoch with probability train_probs
-            rperm = np.random.choice(np.arange(0, nimg), size=(nimg_per_epoch,),
-                                     p=train_probs)
+            rperm = np.random.choice(
+                np.arange(0, nimg), size=(nimg_per_epoch,), p=train_probs
+            )
         else:
             # otherwise use all images
             rperm = np.random.permutation(np.arange(0, nimg))
         for param_group in optimizer.param_groups:
-            param_group["lr"] = LR[iepoch] # set learning rate
+            param_group["lr"] = LR[iepoch]  # set learning rate
         net.train()
         for k in range(0, nimg_per_epoch, batch_size):
             kend = min(k + batch_size, nimg_per_epoch)
             inds = rperm[k:kend]
-            imgs, lbls = _get_batch(inds, data=train_data, labels=train_labels,
-                                    files=train_files, labels_files=train_labels_files,
-                                    **kwargs)
+            imgs, lbls = _get_batch(
+                inds,
+                data=train_data,
+                labels=train_labels,
+                files=train_files,
+                labels_files=train_labels_files,
+                **kwargs,
+            )
             diams = np.array([diam_train[i] for i in inds])
-            rsc = diams / net.diam_mean.item() if rescale else np.ones(
-                len(diams), "float32")
+            rsc = (
+                diams / net.diam_mean.item()
+                if rescale
+                else np.ones(len(diams), "float32")
+            )
             # augmentations
-            imgi, lbl = random_rotate_and_resize(imgs, Y=lbls, rescale=rsc,
-                                                            scale_range=scale_range,
-                                                            xy=(bsize, bsize))[:2]
+            imgi, lbl = random_rotate_and_resize(
+                imgs, Y=lbls, rescale=rsc, scale_range=scale_range, xy=(bsize, bsize)
+            )[:2]
             # network and loss optimization
             X = torch.from_numpy(imgi).to(device)
             lbl = torch.from_numpy(lbl).to(device)
@@ -480,28 +603,42 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
         train_losses[iepoch] /= nimg_per_epoch
 
         if iepoch == 5 or iepoch % 10 == 0:
-            lavgt = 0.
+            lavgt = 0.0
             if test_data is not None or test_files is not None:
                 np.random.seed(42)
                 if nimg_test != nimg_test_per_epoch:
-                    rperm = np.random.choice(np.arange(0, nimg_test),
-                                             size=(nimg_test_per_epoch,), p=test_probs)
+                    rperm = np.random.choice(
+                        np.arange(0, nimg_test),
+                        size=(nimg_test_per_epoch,),
+                        p=test_probs,
+                    )
                 else:
                     rperm = np.random.permutation(np.arange(0, nimg_test))
                 for ibatch in range(0, len(rperm), batch_size):
                     with torch.no_grad():
                         net.eval()
-                        inds = rperm[ibatch:ibatch + batch_size]
-                        imgs, lbls = _get_batch(inds, data=test_data,
-                                                labels=test_labels, files=test_files,
-                                                labels_files=test_labels_files,
-                                                **kwargs)
+                        inds = rperm[ibatch : ibatch + batch_size]
+                        imgs, lbls = _get_batch(
+                            inds,
+                            data=test_data,
+                            labels=test_labels,
+                            files=test_files,
+                            labels_files=test_labels_files,
+                            **kwargs,
+                        )
                         diams = np.array([diam_test[i] for i in inds])
-                        rsc = diams / net.diam_mean.item() if rescale else np.ones(
-                            len(diams), "float32")
+                        rsc = (
+                            diams / net.diam_mean.item()
+                            if rescale
+                            else np.ones(len(diams), "float32")
+                        )
                         imgi, lbl = random_rotate_and_resize(
-                            imgs, Y=lbls, rescale=rsc, scale_range=scale_range,
-                            xy=(bsize, bsize))[:2]
+                            imgs,
+                            Y=lbls,
+                            rescale=rsc,
+                            scale_range=scale_range,
+                            xy=(bsize, bsize),
+                        )[:2]
                         X = torch.from_numpy(imgi).to(device)
                         lbl = torch.from_numpy(lbl).to(device)
 
@@ -510,7 +647,7 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
                         loss = _loss_fn_seg(lbl, y, device)
                         if y.shape[1] > 3:
                             loss3 = _loss_fn_class(lbl, y, class_weights=class_weights)
-                            loss += loss3            
+                            loss += loss3
                         test_loss = loss.item()
                         test_loss *= len(imgi)
                         lavgt += test_loss
@@ -518,21 +655,25 @@ def train_seg(net, train_data=None, train_labels=None, train_files=None,
                 test_losses[iepoch] = lavgt
             lavg /= nsum
             train_logger.info(
-                f"{iepoch}, train_loss={lavg:.4f}, test_loss={lavgt:.4f}, LR={LR[iepoch]:.6f}, time {time.time()-t0:.2f}s"
+                f"{iepoch}, train_loss={lavg:.4f}, test_loss={lavgt:.4f}, LR={LR[iepoch]:.6f}, time {time.time() - t0:.2f}s"
             )
             lavg, nsum = 0, 0
 
         if iepoch == n_epochs - 1 or (iepoch % save_every == 0 and iepoch != 0):
-            if save_each and iepoch != n_epochs - 1:  #separate files as model progresses
+            if (
+                save_each and iepoch != n_epochs - 1
+            ):  # separate files as model progresses
                 filename0 = str(filename) + f"_epoch_{iepoch:04d}"
             else:
                 filename0 = filename
             train_logger.info(f"saving network parameters to {filename0}")
             net.save_model(filename0)
-    
+
     net.save_model(filename)
     if original_net_dtype != torch.float32:
-        train_logger.info(f">>> converting network back to {original_net_dtype} after training")
+        train_logger.info(
+            f">>> converting network back to {original_net_dtype} after training"
+        )
         net.dtype = original_net_dtype
 
     return filename, train_losses, test_losses
