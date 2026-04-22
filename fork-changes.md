@@ -2,6 +2,20 @@
 
 ## 2026-04-22
 
+### Switch from YAPF to Ruff
+
+Replaced the YAPF formatter with [Ruff](https://docs.astral.sh/ruff/), which handles both formatting and linting in a single fast tool.
+
+- Removed `.style.yapf`
+- Added `ruff` to the `[dependency-groups] dev` section in `pyproject.toml` (run via `uv run --group dev ruff`)
+- Configured `[tool.ruff]` in `pyproject.toml` preserving the existing 88-character line limit
+- Enabled rule sets: `E`/`W` (pycodestyle), `F` (pyflakes), `I` (isort), `UP` (pyupgrade)
+- Ignored `E402` (conditional imports common in scientific code), `E501` (line length enforced by formatter, not linter), `E741` (single-letter variable names common in math/numpy code)
+
+Pre-existing issues found in the codebase: 565 total, 350 auto-fixable with `ruff check --fix`.
+
+## 2026-04-22
+
 ### Refactor as uv project
 
 Migrated the project from the legacy setuptools-based configuration to a modern `uv` project.
