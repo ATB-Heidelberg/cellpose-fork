@@ -81,3 +81,27 @@ where = ["."]
 exclude = ["tests*", "docs*", "notebooks*", "paper*"]
 
 [tool.setuptools_scm]
+
+[dependency-groups]
+dev = [
+    "ruff",
+]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E402",  # module-import-not-at-top (common in scientific code with conditional imports)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
