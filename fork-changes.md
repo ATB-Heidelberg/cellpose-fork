@@ -6,20 +6,20 @@
 
 Renamed short, opaque variable names to descriptive equivalents across the codebase for improved readability:
 
-| File | Old name | New name |
-|------|----------|----------|
-| `core.py` | `ypad1`, `ypad2` | `y_pad_before`, `y_pad_after` |
-| `core.py` | `xpad1`, `xpad2` | `x_pad_before`, `x_pad_after` |
-| `core.py` | `bslc` | `batch_slice` |
-| `core.py` | `sstr` | `axis_labels` |
-| `core.py` | `stylea` | `style_array` |
-| `core.py` | `pm`, `ipm` | `axis_order`, `axis_order_inv` |
-| `core.py`, `models.py` | `yf` | `net_output` |
-| `train.py` | `td` | `train_sample` |
-| `train.py` | `rperm` | `random_perm` |
-| `train.py` | `lavg` | `loss_avg` |
-| `train.py` | `nsum` | `n_samples` |
-| `denoise.py` | `veci` | `flow_label` |
+| File                   | Old name         | New name                       |
+|------------------------|------------------|--------------------------------|
+| `core.py`              | `ypad1`, `ypad2` | `y_pad_before`, `y_pad_after`  |
+| `core.py`              | `xpad1`, `xpad2` | `x_pad_before`, `x_pad_after`  |
+| `core.py`              | `bslc`           | `batch_slice`                  |
+| `core.py`              | `sstr`           | `axis_labels`                  |
+| `core.py`              | `stylea`         | `style_array`                  |
+| `core.py`              | `pm`, `ipm`      | `axis_order`, `axis_order_inv` |
+| `core.py`, `models.py` | `yf`             | `net_output`                   |
+| `train.py`             | `td`             | `train_sample`                 |
+| `train.py`             | `rperm`          | `random_perm`                  |
+| `train.py`             | `lavg`           | `loss_avg`                     |
+| `train.py`             | `nsum`           | `n_samples`                    |
+| `denoise.py`           | `veci`           | `flow_label`                   |
 
 All renames verified with `ruff check` (zero violations) and `uv build` (successful).
 
