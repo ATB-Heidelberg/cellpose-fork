@@ -16,10 +16,7 @@ from ..utils import download_url_to_file, masks_to_outlines
 from . import guiparts, io
 from .gui import MainW
 
-try:
-    MATPLOTLIB = True
-except:
-    MATPLOTLIB = False
+MATPLOTLIB = False
 
 
 def avg3d(C):
@@ -597,7 +594,7 @@ class MainW_3d(MainW):
             if event.double():
                 try:
                     self.p0.setYRange(0, self.Ly + self.pr)
-                except:
+                except Exception:
                     self.p0.setYRange(0, self.Ly)
                 self.p0.setXRange(0, self.Lx)
             elif self.loaded and not self.in_stroke:
@@ -724,7 +721,7 @@ class MainW_3d(MainW):
         zpos = self.currentZ
         try:
             zpos = int(self.zpos.text())
-        except:
+        except ValueError:
             print("ERROR: zposition is not a number")
         self.currentZ = max(0, min(self.NZ - 1, zpos))
         self.zpos.setText(str(self.currentZ))

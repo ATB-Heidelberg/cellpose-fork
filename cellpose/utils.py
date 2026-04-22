@@ -26,10 +26,7 @@ from tqdm import tqdm, trange
 
 from cellpose import metrics
 
-try:
-    SKIMAGE_ENABLED = True
-except:
-    SKIMAGE_ENABLED = False
+SKIMAGE_ENABLED = True
 
 
 class TqdmToLogger(io.StringIO):
@@ -493,7 +490,7 @@ def get_mask_stats(masks_true):
                 hull = ConvexHull(points)
                 convex_perimeters[ic] = hull.area
                 convex_areas[ic] = hull.volume
-            except:
+            except Exception:
                 convex_perimeters[ic] = 0
 
     convexity[mask_perimeters > 0.0] = (

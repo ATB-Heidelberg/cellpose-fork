@@ -21,36 +21,30 @@ from tqdm import tqdm
 
 from .version import version_str
 
-try:
-    GUI = True
-except:
-    GUI = False
+GUI = True
 
 try:
     import matplotlib.pyplot as plt
 
     MATPLOTLIB = True
-except:
+except ImportError:
     MATPLOTLIB = False
 
 try:
     import nd2
 
     ND2 = True
-except:
+except ImportError:
     ND2 = False
 
 try:
     import nrrd
 
     NRRD = True
-except:
+except ImportError:
     NRRD = False
 
-try:
-    SERVER_UPLOAD = True
-except:
-    SERVER_UPLOAD = False
+SERVER_UPLOAD = True
 
 io_logger = logging.getLogger(__name__)
 
@@ -90,7 +84,7 @@ def logger_setup(
     log_file = cp_dir.joinpath(logfile_name)
     try:
         log_file.unlink()
-    except:
+    except OSError:
         print("creating new log file")
     handlers = [
         logging.FileHandler(log_file),
@@ -206,11 +200,11 @@ def imread(filename):
             ltif = len(tif.pages)
             try:
                 full_shape = tif.shaped_metadata[0]["shape"]
-            except:
+            except Exception:
                 try:
                     page = tif.series[0][0]
                     full_shape = tif.series[0].shape
-                except:
+                except Exception:
                     ltif = 0
             if ltif < 10:
                 img = tif.asarray()

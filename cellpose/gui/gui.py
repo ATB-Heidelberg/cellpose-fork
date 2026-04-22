@@ -42,7 +42,7 @@ try:
     import matplotlib.pyplot as plt
 
     MATPLOTLIB = True
-except:
+except ImportError:
     MATPLOTLIB = False
 
 Horizontal = QtCore.Qt.Orientation.Horizontal
@@ -2089,7 +2089,7 @@ class MainW(QMainWindow):
             if event.double():
                 try:
                     self.p0.setYRange(0, self.Ly + self.pr)
-                except:
+                except Exception:
                     self.p0.setYRange(0, self.Ly)
                 self.p0.setXRange(0, self.Lx)
 

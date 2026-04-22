@@ -26,13 +26,10 @@ try:
     from qtpy.QtWidgets import QFileDialog
 
     GUI = True
-except:
+except ImportError:
     GUI = False
 
-try:
-    MATPLOTLIB = True
-except:
-    MATPLOTLIB = False
+MATPLOTLIB = True
 
 
 def _init_model_list(parent):
@@ -262,7 +259,7 @@ def _load_seg(parent, filename=None, image=None, image_file=None, load_3D=False)
         # check if there are keys in filename
         dat["outlines"]
         parent.loaded = True
-    except:
+    except Exception:
         parent.loaded = False
         print("ERROR: not NPY")
         return
@@ -289,7 +286,7 @@ def _load_seg(parent, filename=None, image=None, image_file=None, load_3D=False)
                     if not load_3D
                     else imread_3D(parent.filename)
                 )
-            except:
+            except Exception:
                 parent.loaded = False
                 found_image = False
                 print("ERROR: cannot find image file, loading from npy")
@@ -379,11 +376,11 @@ def _load_seg(parent, filename=None, image=None, image_file=None, load_3D=False)
             else:
                 parent.recompute_masks = False
 
-        except:
+        except Exception:
             try:
                 if len(parent.flows[0]) > 0:
                     parent.flows = parent.flows[0]
-            except:
+            except Exception:
                 parent.flows = [[], [], [], [], [[]]]
             parent.recompute_masks = False
 

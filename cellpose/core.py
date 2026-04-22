@@ -51,14 +51,14 @@ def _use_gpu_torch(gpu_number=0):
         _ = torch.zeros((1, 1)).to(device)
         core_logger.info("** TORCH CUDA version installed and working. **")
         return True
-    except:
+    except Exception:
         pass
     try:
         device = torch.device("mps:" + str(gpu_number))
         _ = torch.zeros((1, 1)).to(device)
         core_logger.info("** TORCH MPS version installed and working. **")
         return True
-    except:
+    except Exception:
         core_logger.info("Neither TORCH CUDA nor MPS version not installed/working.")
         return False
 
@@ -86,7 +86,7 @@ def assign_device(use_torch=True, gpu=False, device=0):
                 core_logger.info(">>>> using GPU (CUDA)")
                 gpu = True
                 cpu = False
-        except:
+        except Exception:
             gpu = False
             cpu = True
         try:
@@ -95,7 +95,7 @@ def assign_device(use_torch=True, gpu=False, device=0):
                 core_logger.info(">>>> using GPU (MPS)")
                 gpu = True
                 cpu = False
-        except:
+        except Exception:
             gpu = False
             cpu = True
     else:

@@ -10,15 +10,17 @@ from scipy.ndimage import gaussian_filter
 from . import io, transforms, utils
 
 try:
+    import matplotlib
+
     MATPLOTLIB_ENABLED = True
-except:
+except ImportError:
     MATPLOTLIB_ENABLED = False
 
 try:
     from skimage.segmentation import find_boundaries
 
     SKIMAGE_ENABLED = True
-except:
+except ImportError:
     SKIMAGE_ENABLED = False
 
 
