@@ -196,11 +196,11 @@ def run_net(
         Lyr, Lxr = Ly0, Lx0
 
     ly, lx = bsize, bsize
-    ypad1, ypad2, xpad1, xpad2 = transforms.get_pad_yx(
+    y_pad_before, y_pad_after, x_pad_before, x_pad_after = transforms.get_pad_yx(
         Lyr, Lxr, min_size=(bsize, bsize)
     )
-    Ly, Lx = Lyr + ypad1 + ypad2, Lxr + xpad1 + xpad2
-    pads = np.array([[0, 0], [ypad1, ypad2], [xpad1, xpad2]])
+    Ly, Lx = Lyr + y_pad_before + y_pad_after, Lxr + x_pad_before + x_pad_after
+    pads = np.array([[0, 0], [y_pad_before, y_pad_after], [x_pad_before, x_pad_after]])
 
     if augment:
         ny = max(2, int(np.ceil(2.0 * Ly / bsize)))
@@ -238,19 +238,19 @@ def run_net(
 
         # run network
         for j in range(0, IMGa.shape[0], batch_size):
-            bslc = slice(j, min(j + batch_size, IMGa.shape[0]))
-            ya0, stylea0 = _forward(net, IMGa[bslc])
+            batch_slice = slice(j, min(j + batch_size, IMGa.shape[0]))
+            ya0, stylea0 = _forward(net, IMGa[batch_slice])
             if j == 0:
                 nout = ya0.shape[1]
                 ya = np.zeros((IMGa.shape[0], nout, ly, lx), "float32")
-                stylea = np.zeros((IMGa.shape[0], 256), "float32")
-            ya[bslc] = ya0
-            stylea[bslc] = stylea0
+                style_array = np.zeros((IMGa.shape[0], 256), "float32")
+            ya[batch_slice] = ya0
+            style_array[batch_slice] = stylea0
 
         # average tiles
         for i, b in enumerate(inds):
             if i == 0 and k == 0:
-                yf = np.zeros((Lz, nout, Ly, Lx), "float32")
+                net_output = np.zeros((Lz, nout, Ly, Lx), "float32")
                 styles = np.zeros((Lz, 256), "float32")
             y = ya[i * ntiles : (i + 1) * ntiles]
             if augment:
@@ -258,14 +258,14 @@ def run_net(
                 y = transforms.unaugment_tiles(y)
                 y = np.reshape(y, (-1, 3, ly, lx))
             yfi = transforms.average_tiles(y, ysub, xsub, Lyt, Lxt)
-            yf[b] = yfi[:, : imgb.shape[-2], : imgb.shape[-1]]
-            # stylei = stylea[i * ntiles:(i + 1) * ntiles].sum(axis=0)
+            net_output[b] = yfi[:, : imgb.shape[-2], : imgb.shape[-1]]
+            # stylei = style_array[i * ntiles:(i + 1) * ntiles].sum(axis=0)
             # stylei /= (stylei**2).sum()**0.5
             # styles[b] = stylei
     # slices from padding
-    yf = yf[:, :, ypad1 : Ly - ypad2, xpad1 : Lx - xpad2]
-    yf = yf.transpose(0, 2, 3, 1)
-    return yf, np.array(styles)
+    net_output = net_output[:, :, y_pad_before : Ly - y_pad_after, x_pad_before : Lx - x_pad_after]
+    net_output = net_output.transpose(0, 2, 3, 1)
+    return net_output, np.array(styles)
 
 
 def run_3D(
@@ -299,18 +299,18 @@ def run_3D(
             y[...,0] is Z flow; y[...,1] is Y flow; y[...,2] is X flow; y[...,3] is cell probability.
             style is a 1D array of size 256 summarizing the style of the image, if tiled `style` is averaged over tiles.
     """
-    sstr = ["YX", "ZY", "ZX"]
-    pm = [(0, 1, 2, 3), (1, 0, 2, 3), (2, 0, 1, 3)]
-    ipm = [(0, 1, 2), (1, 0, 2), (1, 2, 0)]
+    axis_labels = ["YX", "ZY", "ZX"]
+    axis_order = [(0, 1, 2, 3), (1, 0, 2, 3), (2, 0, 1, 3)]
+    axis_order_inv = [(0, 1, 2), (1, 0, 2), (1, 2, 0)]
     cp = [(1, 2), (0, 2), (0, 1)]
     cpy = [(0, 1), (0, 1), (0, 1)]
     shape = imgs.shape[:-1]
-    yf = np.zeros((*shape, 4), "float32")
+    net_output = np.zeros((*shape, 4), "float32")
     for p in range(3):
-        xsl = imgs.transpose(pm[p])
+        xsl = imgs.transpose(axis_order[p])
         # per image
         core_logger.info(
-            f"running {sstr[p]}: {shape[pm[p][0]]} planes of size ({shape[pm[p][1]]}, {shape[pm[p][2]]})"
+            f"running {axis_labels[p]}: {shape[axis_order[p][0]]} planes of size ({shape[axis_order[p][1]]}, {shape[axis_order[p][2]]})"
         )
         y, style = run_net(
             net,
@@ -321,13 +321,13 @@ def run_3D(
             tile_overlap=tile_overlap,
             rsz=None,
         )
-        yf[..., -1] += y[..., -1].transpose(ipm[p])
+        net_output[..., -1] += y[..., -1].transpose(axis_order_inv[p])
         for j in range(2):
-            yf[..., cp[p][j]] += y[..., cpy[p][j]].transpose(ipm[p])
+            net_output[..., cp[p][j]] += y[..., cpy[p][j]].transpose(axis_order_inv[p])
         y = None
         del y
 
         if progress is not None:
             progress.setValue(25 + 15 * p)
 
-    return yf, style
+    return net_output, style

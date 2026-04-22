@@ -459,25 +459,25 @@ def get_image_files(folder, mask_filter, imf=None, look_one_level_down=False):
         )
 
     image_names = natsorted(image_names)
-    imn = []
-    for im in image_names:
-        imfile = os.path.splitext(im)[0]
-        igood = all(
+    image_names_buffer = []
+    for image in image_names:
+        image_file = os.path.splitext(image)[0]
+        is_good = all(
             [
                 (
-                    len(imfile) > len(mask_filter)
-                    and imfile[-len(mask_filter) :] != mask_filter
+                    len(image_file) > len(mask_filter)
+                    and image_file[-len(mask_filter) :] != mask_filter
                 )
-                or len(imfile) <= len(mask_filter)
+                or len(image_file) <= len(mask_filter)
                 for mask_filter in mask_filters
             ]
         )
         if len(imf) > 0:
-            igood &= imfile[-len(imf) :] == imf
-        if igood:
-            imn.append(im)
+            is_good &= image_file[-len(imf) :] == imf
+        if is_good:
+            image_names_buffer.append(image)
 
-    image_names = imn
+    image_names = image_names_buffer
 
     # remove duplicates
     image_names = [*set(image_names)]

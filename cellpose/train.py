@@ -68,28 +68,28 @@ def _reshape_norm(data, channel_axis=None, normalize_params={"normalize": False}
         list: List of reshaped and normalized data.
     """
     if (
-        np.array([td.ndim != 3 for td in data]).sum() > 0
-        or np.array([td.shape[0] != 3 for td in data]).sum() > 0
+        np.array([train_sample.ndim != 3 for train_sample in data]).sum() > 0
+        or np.array([train_sample.shape[0] != 3 for train_sample in data]).sum() > 0
     ):
         data_new = []
-        for td in data:
-            if td.ndim == 3:
+        for train_sample in data:
+            if train_sample.ndim == 3:
                 channel_axis0 = (
                     channel_axis
                     if channel_axis is not None
-                    else np.array(td.shape).argmin()
+                    else np.array(train_sample.shape).argmin()
                 )
                 # put channel axis first
-                td = np.moveaxis(td, channel_axis0, 0)
-                td = td[:3]  # keep at most 3 channels
-            if td.ndim == 2 or (td.ndim == 3 and td.shape[0] == 1):
-                td = np.stack((td, 0 * td, 0 * td), axis=0)
-            elif td.ndim == 3 and td.shape[0] < 3:
-                td = np.concatenate((td, 0 * td[:1]), axis=0)
-            data_new.append(td)
+                train_sample = np.moveaxis(train_sample, channel_axis0, 0)
+                train_sample = train_sample[:3]  # keep at most 3 channels
+            if train_sample.ndim == 2 or (train_sample.ndim == 3 and train_sample.shape[0] == 1):
+                train_sample = np.stack((train_sample, 0 * train_sample, 0 * train_sample), axis=0)
+            elif train_sample.ndim == 3 and train_sample.shape[0] < 3:
+                train_sample = np.concatenate((train_sample, 0 * train_sample[:1]), axis=0)
+            data_new.append(train_sample)
         data = data_new
     if normalize_params["normalize"]:
-        data = [normalize_img(td, normalize=normalize_params, axis=0) for td in data]
+        data = [normalize_img(train_sample, normalize=normalize_params, axis=0) for train_sample in data]
     return data
 
 
@@ -133,14 +133,14 @@ def _reshape_norm_save(
     """not currently used -- normalization happening on each batch if not load_files"""
     files_new = []
     for f in trange(files):
-        td = io.imread(f)
+        train_sample = io.imread(f)
         if channels is not None:
-            td = convert_image(td, channels=channels, channel_axis=channel_axis)
-            td = td.transpose(2, 0, 1)
+            train_sample = convert_image(train_sample, channels=channels, channel_axis=channel_axis)
+            train_sample = train_sample.transpose(2, 0, 1)
         if normalize_params["normalize"]:
-            td = normalize_img(td, normalize=normalize_params, axis=0)
+            train_sample = normalize_img(train_sample, normalize=normalize_params, axis=0)
         fnew = os.path.splitext(str(f))[0] + "_cpnorm.tif"
-        io.imsave(fnew, td)
+        io.imsave(fnew, train_sample)
         files_new.append(fnew)
     return files_new
     # else:
@@ -543,24 +543,24 @@ def train_seg(
 
     train_logger.info(f">>> saving model to {filename}")
 
-    lavg, nsum = 0, 0
+    loss_avg, n_samples = 0, 0
     train_losses, test_losses = np.zeros(n_epochs), np.zeros(n_epochs)
     for iepoch in range(n_epochs):
         np.random.seed(iepoch)
         if nimg != nimg_per_epoch:
             # choose random images for epoch with probability train_probs
-            rperm = np.random.choice(
+            random_perm = np.random.choice(
                 np.arange(0, nimg), size=(nimg_per_epoch,), p=train_probs
             )
         else:
             # otherwise use all images
-            rperm = np.random.permutation(np.arange(0, nimg))
+            random_perm = np.random.permutation(np.arange(0, nimg))
         for param_group in optimizer.param_groups:
             param_group["lr"] = LR[iepoch]  # set learning rate
         net.train()
         for k in range(0, nimg_per_epoch, batch_size):
             kend = min(k + batch_size, nimg_per_epoch)
-            inds = rperm[k:kend]
+            inds = random_perm[k:kend]
             imgs, lbls = _get_batch(
                 inds,
                 data=train_data,
@@ -596,8 +596,8 @@ def train_seg(
             train_loss *= len(imgi)
 
             # keep track of average training loss across epochs
-            lavg += train_loss
-            nsum += len(imgi)
+            loss_avg += train_loss
+            n_samples += len(imgi)
             # per epoch training loss
             train_losses[iepoch] += train_loss
         train_losses[iepoch] /= nimg_per_epoch
@@ -607,17 +607,17 @@ def train_seg(
             if test_data is not None or test_files is not None:
                 np.random.seed(42)
                 if nimg_test != nimg_test_per_epoch:
-                    rperm = np.random.choice(
+                    random_perm = np.random.choice(
                         np.arange(0, nimg_test),
                         size=(nimg_test_per_epoch,),
                         p=test_probs,
                     )
                 else:
-                    rperm = np.random.permutation(np.arange(0, nimg_test))
-                for ibatch in range(0, len(rperm), batch_size):
+                    random_perm = np.random.permutation(np.arange(0, nimg_test))
+                for ibatch in range(0, len(random_perm), batch_size):
                     with torch.no_grad():
                         net.eval()
-                        inds = rperm[ibatch : ibatch + batch_size]
+                        inds = random_perm[ibatch : ibatch + batch_size]
                         imgs, lbls = _get_batch(
                             inds,
                             data=test_data,
@@ -651,13 +651,13 @@ def train_seg(
                         test_loss = loss.item()
                         test_loss *= len(imgi)
                         lavgt += test_loss
-                lavgt /= len(rperm)
+                lavgt /= len(random_perm)
                 test_losses[iepoch] = lavgt
-            lavg /= nsum
+            loss_avg /= n_samples
             train_logger.info(
-                f"{iepoch}, train_loss={lavg:.4f}, test_loss={lavgt:.4f}, LR={LR[iepoch]:.6f}, time {time.time() - t0:.2f}s"
+                f"{iepoch}, train_loss={loss_avg:.4f}, test_loss={lavgt:.4f}, LR={LR[iepoch]:.6f}, time {time.time() - t0:.2f}s"
             )
-            lavg, nsum = 0, 0
+            loss_avg, n_samples = 0, 0
 
         if iepoch == n_epochs - 1 or (iepoch % save_every == 0 and iepoch != 0):
             if (

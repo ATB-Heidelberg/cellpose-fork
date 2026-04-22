@@ -38,34 +38,34 @@ def _init_model_list(parent):
     parent.model_strings = get_user_models()
 
 
-def _add_model(parent, filename=None, load_model=True):
-    if filename is None:
+def _add_model(parent, file_name=None, load_model=True):
+    if file_name is None:
         name = QFileDialog.getOpenFileName(parent, "Add model to GUI")
-        filename = name[0]
-    add_model(filename)
-    fname = os.path.split(filename)[-1]
-    parent.ModelChooseC.addItems([fname])
-    parent.model_strings.append(fname)
+        file_name = name[0]
+    add_model(file_name)
+    file_name = os.path.split(file_name)[-1]
+    parent.ModelChooseC.addItems([file_name])
+    parent.model_strings.append(file_name)
 
-    for ind, model_string in enumerate(parent.model_strings[:-1]):
-        if model_string == fname:
-            _remove_model(parent, ind=ind + 1, verbose=False)
+    for index, model_string in enumerate(parent.model_strings[:-1]):
+        if model_string == file_name:
+            _remove_model(parent, index=index + 1)
 
     parent.ModelChooseC.setCurrentIndex(len(parent.model_strings))
     if load_model:
         parent.model_choose(custom=True)
 
 
-def _remove_model(parent, ind=None, verbose=True):
-    if ind is None:
-        ind = parent.ModelChooseC.currentIndex()
-    if ind > 0:
-        ind -= 1
-        parent.ModelChooseC.removeItem(ind + 1)
-        del parent.model_strings[ind]
+def _remove_model(parent, index=None):
+    if index is None:
+        index = parent.ModelChooseC.currentIndex()
+    if index > 0:
+        index -= 1
+        parent.ModelChooseC.removeItem(index + 1)
+        del parent.model_strings[index]
         # remove model from txt path
-        modelstr = parent.ModelChooseC.currentText()
-        remove_model(modelstr)
+        model_as_str = parent.ModelChooseC.currentText()
+        remove_model(model_as_str)
         if len(parent.model_strings) > 0:
             parent.ModelChooseC.setCurrentIndex(len(parent.model_strings))
         else:
@@ -100,6 +100,8 @@ def _get_train_set(image_names):
                 if "normalize_params" in dat
                 else normalize_default
             )
+        else:
+            raise Exception(f"ERROR: no _seg.npy found for {image_name}")
         if label_name is not None:
             train_files.append(image_name_full)
             train_data.append(data)

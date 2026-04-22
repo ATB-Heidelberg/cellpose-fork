@@ -417,7 +417,7 @@ class CellposeModel:
                     Ly=int(Lz * anisotropy * rescale),
                     Lx=int(Lx * rescale),
                 ).transpose(1, 0, 2, 3)
-            yf, styles = run_3D(
+            net_output, styles = run_3D(
                 self.net,
                 x,
                 batch_size=batch_size,
@@ -426,20 +426,20 @@ class CellposeModel:
                 bsize=bsize,
             )
             if resample:
-                if rescale != 1.0 or Lz != yf.shape[0]:
+                if rescale != 1.0 or Lz != net_output.shape[0]:
                     models_logger.info(
                         "resizing 3D flows and cellprobl to original image size"
                     )
                     if rescale != 1.0:
-                        yf = transforms.resize_image(yf, Ly=Ly, Lx=Lx)
-                    if Lz != yf.shape[0]:
-                        yf = transforms.resize_image(
-                            yf.transpose(1, 0, 2, 3), Ly=Lz, Lx=Lx
+                        net_output = transforms.resize_image(net_output, Ly=Ly, Lx=Lx)
+                    if Lz != net_output.shape[0]:
+                        net_output = transforms.resize_image(
+                            net_output.transpose(1, 0, 2, 3), Ly=Lz, Lx=Lx
                         ).transpose(1, 0, 2, 3)
-            cellprob = yf[..., -1]
-            dP = yf[..., :-1].transpose((3, 0, 1, 2))
+            cellprob = net_output[..., -1]
+            dP = net_output[..., :-1].transpose((3, 0, 1, 2))
         else:
-            yf, styles = run_net(
+            net_output, styles = run_net(
                 self.net,
                 x,
                 bsize=bsize,
@@ -450,9 +450,9 @@ class CellposeModel:
             )
             if resample:
                 if rescale != 1.0:
-                    yf = transforms.resize_image(yf, shape[1], shape[2])
-            cellprob = yf[..., -1]
-            dP = yf[..., -3:-1].transpose((3, 0, 1, 2))
+                    net_output = transforms.resize_image(net_output, shape[1], shape[2])
+            cellprob = net_output[..., -1]
+            dP = net_output[..., -3:-1].transpose((3, 0, 1, 2))
 
         styles = styles.squeeze()
 
