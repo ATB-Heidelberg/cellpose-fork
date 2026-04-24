@@ -27,6 +27,7 @@ from qtpy.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollArea,
+    QSplitter,
     QWidget,
 )
 from superqt import QCollapsible, QRangeSlider
@@ -36,7 +37,7 @@ from ..io import get_image_files
 from ..plot import disk
 from ..transforms import normalize99, normalize99_tile, resize_image, smooth_sharpen_img
 from ..utils import download_url_to_file
-from . import guiparts, io, menus
+from . import filebrowser, guiparts, io, menus
 
 try:
     import matplotlib.pyplot as plt
@@ -923,6 +924,8 @@ def run(image=None):
 
 
 class MainW(QMainWindow):
+    image_loaded = QtCore.Signal(str)
+
     def __init__(self, image=None, logger=None):
         super().__init__()
 
@@ -987,17 +990,34 @@ class MainW(QMainWindow):
         self.l0 = QGridLayout()
         self.swidget.setLayout(self.l0)
         self.make_buttons()
-        self.lmain.addWidget(self.scrollarea, 0, 0, 39, 9)
 
         # ---- drawing area ---- #
         self.win = pg.GraphicsLayoutWidget()
 
-        self.lmain.addWidget(self.win, 0, 9, 40, 30)
-
         self.win.scene().sigMouseClicked.connect(self.plot_clicked)
         self.win.scene().sigMouseMoved.connect(self.mouse_moved)
         self.make_viewbox()
-        self.lmain.setColumnStretch(10, 1)
+
+        # ---- three-pane splitter: [file browser | controls | viewer] ---- #
+        self.file_browser = filebrowser.FileBrowserPanel(self)
+        self.file_browser.file_load_requested.connect(
+            lambda path: io._load_image(self, filename=path)
+        )
+        self.image_loaded.connect(self.file_browser.highlight)
+
+        self._main_splitter = QSplitter(QtCore.Qt.Horizontal)
+        self._main_splitter.addWidget(self.file_browser)
+        self._main_splitter.addWidget(self.scrollarea)
+        self._main_splitter.addWidget(self.win)
+        self._main_splitter.setSizes([200, 270, 730])
+        self._main_splitter.setStretchFactor(0, 0)
+        self._main_splitter.setStretchFactor(1, 0)
+        self._main_splitter.setStretchFactor(2, 1)
+        self._main_splitter.setHandleWidth(3)
+        self._main_splitter.setStyleSheet(
+            "QSplitter::handle { background-color: rgb(60, 60, 60); }"
+        )
+        self.lmain.addWidget(self._main_splitter, 0, 0, 40, 39)
         bwrmap = make_bwr()
         self.bwr = bwrmap.getLookupTable(start=0.0, stop=255.0, alpha=False)
         self.cmap = []
@@ -1578,6 +1598,9 @@ class MainW(QMainWindow):
 
         self.update_plot()
         self.setWindowTitle(self.filename)
+        if self.loaded and self.filename:
+            self.file_browser.refresh(os.path.dirname(self.filename))
+            self.image_loaded.emit(self.filename)
 
     def disable_buttons_removeROIs(self):
         if len(self.model_strings) > 0:
