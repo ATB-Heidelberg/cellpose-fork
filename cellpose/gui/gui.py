@@ -31,6 +31,7 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 from superqt import QCollapsible, QRangeSlider
+from torch.utils import file_baton
 
 from .. import core, dynamics, models, train, version
 from ..io import get_image_files
@@ -931,7 +932,9 @@ class MainW(QMainWindow):
 
         self.logger = logger
         pg.setConfigOptions(imageAxisOrder="row-major")
-        self.setGeometry(50, 50, 1200, 1000)
+        main_window_width: int = 1920
+        main_window_height: int = 1080
+        self.setGeometry(50, 50, main_window_width, main_window_height)
         self.setWindowTitle(f"cellpose v{version}")
         self.cp_path = os.path.dirname(os.path.realpath(__file__))
         app_icon = QtGui.QIcon()
@@ -1009,7 +1012,10 @@ class MainW(QMainWindow):
         self._main_splitter.addWidget(self.file_browser)
         self._main_splitter.addWidget(self.scrollarea)
         self._main_splitter.addWidget(self.win)
-        self._main_splitter.setSizes([200, 270, 730])
+        file_browser_width: int = int(main_window_width * 0.2)
+        widgets_width: int = int(main_window_width * 0.2)
+        image_viewer_width: int = main_window_width - (file_browser_width + widgets_width)
+        self._main_splitter.setSizes([file_browser_width, widgets_width, image_viewer_width])
         self._main_splitter.setStretchFactor(0, 0)
         self._main_splitter.setStretchFactor(1, 0)
         self._main_splitter.setStretchFactor(2, 1)

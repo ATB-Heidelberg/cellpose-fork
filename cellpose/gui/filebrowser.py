@@ -13,8 +13,8 @@ from qtpy import QtCore, QtGui
 from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import (
     QFileDialog,
+    QGroupBox,
     QHBoxLayout,
-    QLabel,
     QListWidget,
     QListWidgetItem,
     QPushButton,
@@ -137,23 +137,27 @@ class FileBrowserPanel(QWidget):
     # ------------------------------------------------------------------
 
     def _build_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(4, 4, 4, 4)
-        layout.setSpacing(4)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(4, 4, 4, 4)
+        outer.setSpacing(0)
 
-        # Header row
-        header = QHBoxLayout()
-        header.setContentsMargins(0, 0, 0, 0)
-        label = QLabel("Files")
-        label.setStyleSheet("color: white; font-weight: bold;")
+        # GroupBox — gives the white border that matches all other panels
+        self._group = QGroupBox("Files")
+        self._group.setFont(QtGui.QFont("Arial", 11, QtGui.QFont.Bold))
+        group_layout = QVBoxLayout(self._group)
+        group_layout.setContentsMargins(4, 8, 4, 4)
+        group_layout.setSpacing(4)
+
+        # "Add folder" button row
+        btn_row = QHBoxLayout()
+        btn_row.setContentsMargins(0, 0, 0, 0)
         add_btn = QPushButton("+")
         add_btn.setFixedSize(24, 24)
         add_btn.setToolTip("Add folder")
         add_btn.clicked.connect(self.add_folder)
-        header.addWidget(label)
-        header.addStretch()
-        header.addWidget(add_btn)
-        layout.addLayout(header)
+        btn_row.addStretch()
+        btn_row.addWidget(add_btn)
+        group_layout.addLayout(btn_row)
 
         # File list
         self.list_widget = QListWidget()
@@ -163,15 +167,25 @@ class FileBrowserPanel(QWidget):
         self.list_widget.setSpacing(2)
         self.list_widget.setWordWrap(True)
         self.list_widget.itemClicked.connect(self._on_item_clicked)
-        layout.addWidget(self.list_widget)
+        group_layout.addWidget(self.list_widget)
 
+        outer.addWidget(self._group)
         self.setMinimumWidth(160)
 
     def _apply_stylesheet(self):
         self.setStyleSheet(
             """
-            FileBrowserPanel {
-                background-color: rgb(25, 25, 25);
+            QGroupBox {
+                border: 1px solid white;
+                color: rgb(255, 255, 255);
+                border-radius: 6px;
+                margin-top: 8px;
+                padding: 0px 0px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 3px;
             }
             QListWidget {
                 background-color: rgb(30, 30, 30);
