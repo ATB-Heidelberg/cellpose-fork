@@ -16,6 +16,14 @@ def mainmenu(parent):
     loadImg.triggered.connect(lambda: io._load_image(parent))
     file_menu.addAction(loadImg)
 
+    parent.toggleBrowser = QAction("Toggle &File Browser panel", parent, checkable=True)
+    parent.toggleBrowser.setChecked(True)
+    parent.toggleBrowser.setShortcut("Ctrl+B")
+    parent.toggleBrowser.toggled.connect(
+        lambda checked: parent.file_browser.setVisible(checked)
+    )
+    file_menu.addAction(parent.toggleBrowser)
+
     parent.autoloadMasks = QAction(
         "Autoload masks from _masks.tif file", parent, checkable=True
     )
