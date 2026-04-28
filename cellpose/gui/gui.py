@@ -1270,7 +1270,7 @@ class MainW(QMainWindow):
         self.segBoxG.addWidget(self.useGPU, widget_row, 0, 1, 3)
 
         # compute segmentation with general models
-        self.net_text = ["run CPSAM"]
+        self.net_text = ["run model"]
         nett = ["cellpose super-generalist model"]
 
         self.StyleButtons = []
